@@ -38,14 +38,12 @@ public class ProblemService {
     private final ProblemRepository problemRepository;
     private final ProblemCreateDtoValidator problemCreateDtoValidator;
     private final RestTemplate restTemplate = new RestTemplate();
-    private final RouterFunctionMapping routerFunctionMapping;
     @Value("${test.service.url}")
     private String TEST_SERVICE_URL;
 
-    ProblemService(ProblemRepository pr, ProblemCreateDtoValidator problemCreateDtoValidator, RouterFunctionMapping routerFunctionMapping) {
+    ProblemService(ProblemRepository pr, ProblemCreateDtoValidator problemCreateDtoValidator) {
         this.problemRepository = pr;
         this.problemCreateDtoValidator = problemCreateDtoValidator;
-        this.routerFunctionMapping = routerFunctionMapping;
     }
 
     public Optional<Problem> findById(int id) {

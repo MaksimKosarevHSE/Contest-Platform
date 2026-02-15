@@ -18,9 +18,8 @@ import org.springframework.web.client.RestTemplate;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
@@ -34,14 +33,15 @@ public class SubmissionService {
     @Value("${submission.event.topic}")
     private String TOPIC_NAME;
 
-    private KafkaTemplate<String, SolutionSubmittedEvent> kafkaTemplate;
+    private KafkaTemplate<String, Object> kafkaTemplate;
 
     private SubmissionRepository submissionRepository;
 
     private RestTemplate restTemplate;
 
     private int PAGE_SIZE = 16;
-    public SubmissionService(KafkaTemplate<String, SolutionSubmittedEvent> kafkaTemplate,
+
+    public SubmissionService(KafkaTemplate<String, Object> kafkaTemplate,
                              SubmissionRepository submitSolutionRepository,
                              RestTemplate rest) {
         this.kafkaTemplate = kafkaTemplate;
@@ -49,30 +49,43 @@ public class SubmissionService {
         this.restTemplate = rest;
     }
 
-    // Сабмит решения задачи из праблем сета
-    public long submitPracticeSolution(int problemId, int userId, SubmissionRequestDto solution) throws IOException, ExecutionException, InterruptedException {
-        ProblemConstraintsDto problem = getProblemConstraints(problemId);
+    public void validateContestSubmission(ProblemConstraintsDto constraints, LocalDateTime submissionTime) {
+        if (submissionTime.isBefore(constraints.getContestStartTime()))
+            throw new RuntimeException("The contest has not started");
+        if (submissionTime.isAfter(constraints.getContestEndTime()))
+            throw new RuntimeException("The contest is finished");
+    }
+
+
+    public long submitSolution(int problemId, Integer contestId, int userId, SubmissionRequestDto solution) throws IOException, ExecutionException, InterruptedException {
+        var submissionTime = LocalDateTime.now();
+        ProblemConstraintsDto problem = getProblemConstraints(problemId, contestId);
         if (problem == null)
             throw new RuntimeException("No problem found with id " + problemId);
+        if (contestId != null) {
+            validateContestSubmission(problem, submissionTime);
+        }
+
         String source = extractSource(solution);
-        Submission submission = new Submission(userId, problemId, null, false, LocalDateTime.now(), source, solution.getLanguage(), Status.IN_QUEUE, 0, 0, 0);
+        Submission submission = new Submission(userId, problemId, contestId, submissionTime, source, solution.getLanguage(), Status.IN_QUEUE, 0, 0, 0);
         submission = submissionRepository.save(submission);
-        sendSubmissionEvent(submission, problem, null);
+        sendSubmissionEvent(submission, problem, contestId);
         return submission.getId();
     }
 
-    // Получение ОК посылок для отображения для каджой задачи из праблем сета
+
     public Page<GetSubmissionDto> getSuccessPracticeSubmissions(Integer problemId, Integer page) {
         return submissionRepository.getSubmissionsByProblemIdAndStatus(problemId, null, Status.OK, PageRequest.of(page, PAGE_SIZE));
     }
 
-    // все посылки юзера по тренировочным задачам
-    public Page<GetSubmissionDto> getAllUserPracticeSubmissions(Integer userId, Integer pageNum) {
-        return submissionRepository.getAllSubmissionsByUserId(userId, null, PageRequest.of(pageNum, PAGE_SIZE));
+
+    public Page<GetSubmissionDto> getAllUserPracticeSubmissions(Integer userId, Integer contestId, Integer pageNum) {
+        return submissionRepository.getAllSubmissionsByUserId(userId, contestId, PageRequest.of(pageNum, PAGE_SIZE));
     }
-    // посылки юзера по тренировочной задаче
-    public Page<GetSubmissionDto> getUserPracticeSubmissions(Integer userId, Integer problemId, Integer pageNum) {
-        return submissionRepository.getSubmissionByUserIdAndProblemIdAndContestId(userId, problemId, null, PageRequest.of(pageNum, PAGE_SIZE));
+
+
+    public Page<GetSubmissionDto> getSubmissions(Integer userId, Integer problemId, Integer contestId, Integer pageNum) {
+        return submissionRepository.getSubmissionByUserIdAndProblemIdAndContestId(userId, problemId, contestId, PageRequest.of(pageNum, PAGE_SIZE));
     }
 
     public SubmissionDetailsDto getSubmissionDetails(Long submissionId, int userId) {
@@ -80,10 +93,6 @@ public class SubmissionService {
         var submission = submissionRepository.findById(submissionId).orElseThrow(() -> new RuntimeException("No submission found with id " + submissionId));
         return new ObjectMapper().convertValue(submission, SubmissionDetailsDto.class);
     }
-
-
-
-
 
 
     private String extractSource(SubmissionRequestDto solution) throws IOException {
@@ -98,8 +107,12 @@ public class SubmissionService {
     }
 
 
-    private ProblemConstraintsDto getProblemConstraints(int problemId) {
-        ResponseEntity<ProblemConstraintsDto> response = restTemplate.getForEntity("http://" + PROBLEM_SERVICE_URL + "/problem/{id}/constraints",
+    private ProblemConstraintsDto getProblemConstraints(int problemId, Integer contestId) {
+        String address = MessageFormat.format("http://{0}/problem/{1}/constraints", PROBLEM_SERVICE_URL, problemId);
+        if (contestId != null)
+            address = MessageFormat.format("http://{0}/contest/{1}/problem/{2}/constraints", PROBLEM_SERVICE_URL, contestId, problemId);
+
+        ResponseEntity<ProblemConstraintsDto> response = restTemplate.getForEntity(address,
                 ProblemConstraintsDto.class, problemId);
         if (response.getStatusCode() == HttpStatus.OK) {
             return response.getBody();
@@ -120,7 +133,7 @@ public class SubmissionService {
                 p.getMemoryLimit(),
                 p.getCompileTimeLimit());
 
-        var record = new ProducerRecord<>(TOPIC_NAME, UUID.randomUUID().toString(), event);
+        var record = new ProducerRecord<>(TOPIC_NAME, UUID.randomUUID().toString(), (Object) event);
         record.headers().add("messageId", UUID.randomUUID().toString().getBytes());
         var sendResult = kafkaTemplate.send(record).get();
         log.error("Message has been sent to topic {} in partitions {}", TOPIC_NAME, sendResult.getRecordMetadata().partition());
@@ -133,6 +146,10 @@ public class SubmissionService {
         submission.setExecutionTime(ev.getExecutionTime());
         submission.setTestNum(ev.getTestNum());
         submission.setUsedMemory(ev.getMemory());
+        if (submission.getContestId() != null && !submission.getIsUpsolving()) {
+            var event = new StandingsUpdateEvent(submission.getUserId(), submission.getContestId(), submission.getProblemId(), submission.getTime(), submission.getStatus());
+            kafkaTemplate.send("standings-update-event", event);
+        }
     }
 
 

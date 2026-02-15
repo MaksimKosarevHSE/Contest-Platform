@@ -37,7 +37,6 @@ public class KafkaConfig {
         return factory;
     }
 
-
     @Bean
     NewTopic createTopic(){
         return TopicBuilder.name("solution-submitted-event-topic")

@@ -25,8 +25,8 @@ public class Submission {
     @Column(name = "contest_id")
     @Nullable
     private Integer contestId;
-    @Column(name = "sent_while_contest")
-    private boolean sentWhileContest;
+    @Column(name = "is_upsolving")
+    private Boolean isUpsolving;
     @Column(name = "time")
     private LocalDateTime time;
     @Column(name = "source", length = 50_000)
@@ -42,7 +42,7 @@ public class Submission {
     @Column(name = "test_num")
     private int testNum;
 
-    public Submission(int userId, int problemId, Integer contestId, boolean sentWhileContest, LocalDateTime time, String source, ProgrammingLanguage programmingLanguage, Status status, int executionTime, int usedMemory, int testNum) {
+    public Submission(int userId, int problemId, Integer contestId, LocalDateTime time, String source, ProgrammingLanguage programmingLanguage, Status status, int executionTime, int usedMemory, int testNum) {
         this.userId = userId;
         this.problemId = problemId;
         this.time = time;

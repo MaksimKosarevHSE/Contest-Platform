@@ -26,8 +26,6 @@ public class SolutionJudgedEventHandler {
     @KafkaListener(topics = "solution-judged-event-topic", containerFactory = "factory1")
     @Transactional
     public void handle(@Payload SolutionJudgedEvent solutionEvent) throws IOException, InterruptedException {
-        log.error("FUCK");
         service.saveVerdict(solutionEvent);
-        log.error("SUCCESS");
     }
 }

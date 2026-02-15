@@ -18,6 +18,8 @@ public class Problem {
     private Integer id;
     @Column(name = "creator_id")
     private Integer creatorId;
+    @Column(name = "is_public")
+    private boolean isPublic;
     @Column(name = "title")
     private String title;
     @Column(name = "statement")
@@ -43,12 +45,13 @@ public class Problem {
     @Column(name = "memory_limit")
     private Double memoryLimit;
 
-    public Problem(int creatorId, String title,
+    public Problem(int creatorId, String title, boolean isPublic,
                    String statement, String input,
                    String output, String notes,
                    List<String> sampleInput, List<String> sampleOutput,
                    int complexity, double compileTimeLimit,
                    double timeLimit, double memoryLimit) {
+        this.isPublic = isPublic;
         this.creatorId = creatorId;
         this.title = title;
         this.statement = statement;
