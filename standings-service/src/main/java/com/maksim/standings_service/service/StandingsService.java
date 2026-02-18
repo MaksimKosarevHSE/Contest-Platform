@@ -1,6 +1,8 @@
 package com.maksim.standings_service.service;
 
 
+import com.maksim.standings_service.dto.TaskProgressDto;
+import com.maksim.standings_service.dto.UserProgressDto;
 import com.maksim.standings_service.entity.ContestUser;
 import com.maksim.standings_service.entity.ContestUserTask;
 import com.maksim.standings_service.entity.Status;
@@ -15,8 +17,7 @@ import org.springframework.stereotype.Service;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -26,6 +27,7 @@ public class StandingsService {
     private ContestUserRepository contestUserRepository;
     private ContestUserTaskRepository contestUserTaskRepository;
     private ObjectMapper om;
+    private final Integer STANDINGS_PAGE_SIZE = 3;
 
     public StandingsService(StringRedisTemplate redisTemplate, ContestUserRepository contestUserRepository, ContestUserTaskRepository contestUserTaskRepository, ObjectMapper om) {
         this.redisTemplate = redisTemplate;
@@ -60,7 +62,10 @@ public class StandingsService {
         return cut;
     }
 
-    public void updateUserTaskProgress(StandingsUpdateEvent event, int userId, int contestId, int taskId) {
+    public void updateUserTaskProgress(StandingsUpdateEvent event) {
+        int userId = event.getUserId();
+        int contestId = event.getContestId();
+        int taskId = event.getProblemId();
         var cutId = new ContestUserTaskId(contestId, userId, taskId);
         Optional<ContestUserTask> cutOpt = contestUserTaskRepository.findById(cutId);
         ContestUserTask cut = cutOpt.orElseGet(() -> new ContestUserTask(cutId)); // тут скорее всего надо сразу сроу кидать
@@ -102,21 +107,54 @@ public class StandingsService {
         // TODO: добавить проверку на то что пользователь не решил ни одной задачи. заполнять таблицу нулями при регистрации!!!! контеста
     }
 
-    public int getPlace(int userId, int contestId){
+    public int getProgress(int userId, int contestId){
         Long place = redisTemplate.opsForZSet().reverseRank(getContestScoresKey(contestId), userId);
         if (place != null) return place.intValue();
         return 0;
+
         // TODO: пересчитывать всю таблицу......... или кинуть что подсчет таблицы недоступен, хотя n log(n) не такое уж и большое время для расчета таблицы
     }
 
-    public List<ContestUserTask> getStandings(int page, int pageSize){
+    public List<ContestUserTask> getStandings(int contestId, int page){
+        var userIds = redisTemplate.opsForZSet().reverseRangeWithScores(getContestScoresKey(contestId), (long) page * STANDINGS_PAGE_SIZE, (long) STANDINGS_PAGE_SIZE * (page + 1) - 1);
+        var table = new ArrayList<>(userIds.size());
+        int place = 0;
+        int prevScore = -1;
+        for (var pair : userIds){
+            var taskList = getUserTaskProgress(Integer.parseInt(pair.getValue()), contestId);
+
+            int curScore = pair.getScore().intValue();
+            if (curScore != prevScore){
+                place++;
+            }
+
+            table.add(new UserProgressDto(pair.getValue(), place, , taskList))
+        }
         return null;
         // TODO: рэнж запрос либо в редис или пересчитывание таблицы
     }
 
+    public ArrayList<TaskProgressDto> getUserTaskProgress(int userId, int contestId){
+        Map<Object, Object> tasksJson = redisTemplate.opsForHash().entries(getUserContestKey(userId, contestId));
+        var list = new ArrayList<TaskProgressDto>(tasksJson.size());
+        for (var entry : tasksJson.entrySet()){
+            var cur = om.readValue(entry.getValue().toString(), ContestUserTask.class);
+            var dtoProgress = new TaskProgressDto(cur.getTaskId(), cur.getIsSolved(),cur.getAttempts(), 1, 2);
+            list.add(dtoProgress);
+        }
+        list.sort((el1, el2) -> el1.getTaskId() - el2.getTaskId());
+        return list;
+    }
+
+
+    public void buildStandingsTable(int contestId){
+        var totalScores = contestUserTaskRepository.
+    }
 
     public ContestUser getContestUser(int userId, int contestId){
         return contestUserRepository.findById(new ContestUserId(contestId,userId)).orElseThrow(() -> new RuntimeException("No user found"));
     }
+
+
 
 }
