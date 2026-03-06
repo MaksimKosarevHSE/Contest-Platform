@@ -13,6 +13,7 @@ import java.util.List;
 
 @RestController
 @CrossOrigin
+@RequestMapping("/api")
 public class ContestController {
     private final ContestService contestService;
 

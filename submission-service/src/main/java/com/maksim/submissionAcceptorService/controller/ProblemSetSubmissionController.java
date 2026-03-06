@@ -11,6 +11,7 @@ import java.util.concurrent.ExecutionException;
 @RestController
 @CrossOrigin
 @Slf4j
+@RequestMapping("/api/submissions")
 public class ProblemSetSubmissionController {
     private final SubmissionService submissionService;
 
@@ -18,34 +19,34 @@ public class ProblemSetSubmissionController {
         this.submissionService = submitSolutionService;
     }
 
-    @PostMapping("api/problemset/{problemId}/submit")
+    @PostMapping("/problemset/{problemId}/submit")
     public ResponseEntity<Object> submitSolution(@PathVariable Integer problemId, @ModelAttribute SubmissionRequestDto solution) throws IOException, ExecutionException, InterruptedException {
         int userId = 1;
         long id = submissionService.submitSolution(problemId, null, userId, solution);
         return ResponseEntity.ok(id);
     }
 
-    @GetMapping("api/problemset/{problemId}/sumbissions/my")
+    @GetMapping("/problemset/{problemId}/sumbissions/my")
     public ResponseEntity<Object> getUserSubmissions(@PathVariable Integer problemId, @RequestParam(defaultValue = "1") Integer page) {
         int userId = 1;
         var result = submissionService.getSubmissions(problemId, null, userId, page);
         return ResponseEntity.ok(result);
     }
 
-    @GetMapping("api/problemset/sumbissions/my")
+    @GetMapping("/problemset/sumbissions/my")
     public ResponseEntity<Object> getAllUserSubmissions(@RequestParam(defaultValue = "1") Integer page) {
         int userId = 1;
         var result = submissionService.getAllUserPracticeSubmissions(userId,null, page);
         return ResponseEntity.ok(result);
     }
 
-    @GetMapping("api/problemset/{problemId}/standings")
+    @GetMapping("/problemset/{problemId}/standings")
     public ResponseEntity<Object> getSubmissions(@PathVariable Integer problemId, @RequestParam(defaultValue = "1") Integer page) {
         var result = submissionService.getSuccessPracticeSubmissions(problemId, page);
         return ResponseEntity.ok(result);
     }
 
-    @GetMapping("api/problemset/submission/{submissionId}/details")
+    @GetMapping("/problemset/submission/{submissionId}/details")
     public ResponseEntity<Object> getSubmissionDetails(@PathVariable Long submissionId) {
         int userId = 1;
         var result = submissionService.getSubmissionDetails(submissionId, userId);

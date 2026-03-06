@@ -16,6 +16,7 @@ import java.util.List;
 
 @RestController
 @CrossOrigin
+@RequestMapping("/api")
 public class ProblemSetController {
     private final ProblemService problemService;
 
@@ -57,7 +58,7 @@ public class ProblemSetController {
         return ResponseEntity.ok(constraints);
     }
     // HAS TESTED
-    @GetMapping("/problem/page/{num}")
+    @GetMapping("/problems/{num}")
     public ResponseEntity<Object> getProblemsPage(@PathVariable Integer num) {
         var page = problemService.getProblemsPage(num, PAGE_SIZE);
         return ResponseEntity.ok(page);

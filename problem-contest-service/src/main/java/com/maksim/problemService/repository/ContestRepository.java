@@ -22,10 +22,10 @@
         Optional<Problem> getProblem(Integer contestId, Integer problemId);
 
 
-        @Query("select new com.maksim.problemService.dto.ContestSignatureDto(c.id, c.authorId, c.startTime, c.endTime) from Contest c order by c.startTime desc")
+        @Query("select new com.maksim.problemService.dto.contest.ContestSignatureDto(c.id, c.authorId, c.startTime, c.endTime) from Contest c order by c.startTime desc")
         List<ContestSignatureDto> getAll(PageRequest of);
 
-        @Query("select new com.maksim.problemService.dto.ContestSignatureDto(cu.contest.id, cu.contest.authorId, cu.contest.startTime, cu.contest.endTime) from ContestUser cu where cu.id.userId = :userId order by cu.contest.startTime desc")
+        @Query("select new com.maksim.problemService.dto.contest.ContestSignatureDto(cu.contest.id, cu.contest.authorId, cu.contest.startTime, cu.contest.endTime) from ContestUser cu where cu.id.userId = :userId order by cu.contest.startTime desc")
         List<ContestSignatureDto> getUserContests(int userId, PageRequest of);
 
         @Query("select count(*) from Problem p where p.creatorId = :authorId and p.isPublic = false and p.id in (:uniqueIds)")

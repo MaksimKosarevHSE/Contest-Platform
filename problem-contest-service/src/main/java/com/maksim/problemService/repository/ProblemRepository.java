@@ -13,7 +13,7 @@ public interface ProblemRepository extends JpaRepository<Problem, Integer> {
     @Query("select new com.maksim.problemService.entity.ProblemConstraints(p.id, p.compileTimeLimit, p.timeLimit, p.memoryLimit) from Problem p where p.id=:id and p.isPublic")
     ProblemConstraints getProblemConstraints(@Param("id") int id);
 
-    @Query("select new com.maksim.problemService.dto.ProblemSignature(p.id, p.title, p.complexity) from Problem p where p.isPublic")
+    @Query("select new com.maksim.problemService.dto.problem.ProblemSignature(p.id, p.title, p.complexity) from Problem p where p.isPublic")
     Page<ProblemSignature> getProblemsSignatures(Pageable pageable);
 
 }

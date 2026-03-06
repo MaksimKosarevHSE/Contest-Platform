@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
 @Controller
+@RequestMapping("/api/submissions")
 public class ContestSubmissionController {
     private final SubmissionService submissionService;
 
@@ -17,7 +18,7 @@ public class ContestSubmissionController {
         this.submissionService = submitSolutionService;
     }
 
-    @PostMapping("api/contest/{contestId}/problem/{problemId}/submit")
+    @PostMapping("/contest/{contestId}/problem/{problemId}/submit")
     public ResponseEntity<Object> submitSolution(@PathVariable Integer contestId, @PathVariable Integer problemId, @ModelAttribute SubmissionRequestDto solution) throws IOException, ExecutionException, InterruptedException {
         int userId = 1;
         long id = submissionService.submitSolution(problemId, contestId, userId, solution);
@@ -25,7 +26,7 @@ public class ContestSubmissionController {
     }
 
 
-    @GetMapping("api/contest/{contestId}/problem/{problemId}/submissions/my")
+    @GetMapping("/contest/{contestId}/problem/{problemId}/submissions/my")
     public ResponseEntity<Object> getUserSubmissions(@PathVariable Integer contestId, @PathVariable Integer problemId,  @RequestParam(defaultValue = "1") Integer page) {
         int userId = 1;
         var result = submissionService.getSubmissions(problemId, contestId, userId, page);
@@ -33,7 +34,7 @@ public class ContestSubmissionController {
     }
 
 
-    @GetMapping("api/contest/{contestId}/submissions/my")
+    @GetMapping("/contest/{contestId}/submissions/my")
     public ResponseEntity<Object> getAllUserSubmissions(@PathVariable Integer contestId, @RequestParam(defaultValue = "1") Integer page) {
         int userId = 1;
         var result = submissionService.getAllUserPracticeSubmissions(userId, contestId, page);
@@ -46,7 +47,7 @@ public class ContestSubmissionController {
 //        return ResponseEntity.ok(result);
 //    }
 
-    @GetMapping("api/contest/submission/{submissionId}/details")
+    @GetMapping("/contest/submission/{submissionId}/details")
     public ResponseEntity<Object> getSubmissionDetails(@PathVariable Long submissionId) {
         int userId = 1;
         var result = submissionService.getSubmissionDetails(submissionId, userId);

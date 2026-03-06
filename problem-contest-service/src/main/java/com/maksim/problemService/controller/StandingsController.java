@@ -5,9 +5,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
+@RequestMapping("/api")
 public class StandingsController {
     private final StandingsService standingsService;
 
@@ -17,7 +19,7 @@ public class StandingsController {
         this.standingsService = standingsService;
     }
 
-    @GetMapping("/api/contest/{contestId}/standings")
+    @GetMapping("/contest/{contestId}/standings")
     public ResponseEntity<Object> getStandings(@PathVariable Integer contestId, @RequestParam(name = "page", defaultValue = "0") Integer page) {
         var result = standingsService.getLeaderboard(contestId, page, PAGE_SIZE);
         return ResponseEntity.ok(result);
