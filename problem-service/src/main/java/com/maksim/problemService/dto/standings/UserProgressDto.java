@@ -1,4 +1,4 @@
-package com.maksim.problemService.dto;
+package com.maksim.problemService.dto.standings;
 
 
 import lombok.AllArgsConstructor;
@@ -13,7 +13,7 @@ import java.util.List;
 public class UserProgressDto {
     private int userId;
     int place;
-    private int fine;
+//    private int fine;
     List<TaskProgressDto> taskProgress;
-
+    private int score;
 }

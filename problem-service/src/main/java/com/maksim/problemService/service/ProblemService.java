@@ -1,11 +1,10 @@
 package com.maksim.problemService.service;
 
 
-import com.maksim.problemService.dto.ProblemCreateDto;
-import com.maksim.problemService.dto.ProblemSignature;
-import com.maksim.problemService.dto.SendTestCasesToJudgeServiceDto;
-import com.maksim.problemService.dto.validators.NotValidDtoException;
-import com.maksim.problemService.dto.validators.ProblemCreateDtoValidator;
+import com.maksim.problemService.dto.problem.ProblemCreateDto;
+import com.maksim.problemService.dto.problem.ProblemSignature;
+import com.maksim.problemService.event.SendTestCasesToJudgeServiceDto;
+import com.maksim.problemService.validators.ProblemCreateDtoValidator;
 import com.maksim.problemService.entity.CheckerType;
 import com.maksim.problemService.entity.ProblemConstraints;
 import com.maksim.problemService.entity.Problem;
@@ -13,7 +12,6 @@ import com.maksim.problemService.repository.ProblemRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
 
 import org.springframework.data.domain.PageRequest;
@@ -21,16 +19,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.function.support.RouterFunctionMapping;
-import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 @Service
 @Transactional

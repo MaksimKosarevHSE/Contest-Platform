@@ -1,8 +1,8 @@
 package com.maksim.problemService.service;
 
-import com.maksim.problemService.dto.ContestSignatureDto;
-import com.maksim.problemService.dto.CreateContestDto;
-import com.maksim.problemService.dto.ProblemSignature;
+import com.maksim.problemService.dto.contest.ContestSignatureDto;
+import com.maksim.problemService.dto.contest.CreateContestDto;
+import com.maksim.problemService.dto.problem.ProblemSignature;
 import com.maksim.problemService.entity.Contest;
 import com.maksim.problemService.entity.ContestProblem;
 import com.maksim.problemService.entity.Problem;

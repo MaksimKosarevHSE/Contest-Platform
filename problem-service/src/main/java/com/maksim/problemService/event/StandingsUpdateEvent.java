@@ -14,7 +14,7 @@ public class StandingsUpdateEvent {
     private int problemId;
     private LocalDateTime submissionTime;
     private Status status;
-    private int score;
-    private int fine;
+//    private int score;
+//    private int fine;
 
 }

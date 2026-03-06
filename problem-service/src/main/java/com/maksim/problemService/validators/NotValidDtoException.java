@@ -1,4 +1,4 @@
-package com.maksim.problemService.dto.validators;
+package com.maksim.problemService.validators;
 
 
 public class NotValidDtoException extends RuntimeException {

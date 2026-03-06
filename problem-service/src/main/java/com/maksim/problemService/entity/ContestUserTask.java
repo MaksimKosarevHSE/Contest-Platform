@@ -30,7 +30,7 @@ public class ContestUserTask {
     private Boolean isSolved;
     private int attempts;
     private int score;
-    private int fine;
+//    private int fine;
     private LocalDateTime solutionTime;
 
     public ContestUserTask(ContestUserTaskId id) {
@@ -38,8 +38,14 @@ public class ContestUserTask {
         this.isSolved = false;
     }
 
-    public void addFine(int x){
-        fine += x;
+//    public void addFine(int x){
+//        fine += x;
+//    }
+
+    public void incAttempts(){
+        attempts++;
     }
+
+
 
 }

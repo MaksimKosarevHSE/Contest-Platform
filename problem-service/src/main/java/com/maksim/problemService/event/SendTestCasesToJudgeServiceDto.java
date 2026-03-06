@@ -1,4 +1,4 @@
-package com.maksim.problemService.dto;
+package com.maksim.problemService.event;
 
 import com.maksim.problemService.entity.CheckerType;
 import com.maksim.problemService.entity.ProgrammingLanguage;

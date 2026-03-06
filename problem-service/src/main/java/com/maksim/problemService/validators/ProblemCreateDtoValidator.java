@@ -1,6 +1,6 @@
-package com.maksim.problemService.dto.validators;
+package com.maksim.problemService.validators;
 
-import com.maksim.problemService.dto.ProblemCreateDto;
+import com.maksim.problemService.dto.problem.ProblemCreateDto;
 import com.maksim.problemService.entity.CheckerType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;

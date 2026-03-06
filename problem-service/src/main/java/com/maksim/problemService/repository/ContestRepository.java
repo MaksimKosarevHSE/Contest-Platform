@@ -1,7 +1,7 @@
     package com.maksim.problemService.repository;
 
 
-    import com.maksim.problemService.dto.ContestSignatureDto;
+    import com.maksim.problemService.dto.contest.ContestSignatureDto;
     import com.maksim.problemService.entity.Contest;
     import com.maksim.problemService.entity.Problem;
     import com.maksim.problemService.entity.ProblemConstraints;

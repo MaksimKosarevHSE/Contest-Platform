@@ -1,4 +1,4 @@
-package com.maksim.problemService.dto;
+package com.maksim.problemService.dto.contest;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

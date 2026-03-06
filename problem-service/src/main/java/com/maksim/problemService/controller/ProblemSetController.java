@@ -2,7 +2,7 @@ package com.maksim.problemService.controller;
 
 
 import com.maksim.problemService.dto.ErrorMessage;
-import com.maksim.problemService.dto.ProblemCreateDto;
+import com.maksim.problemService.dto.problem.ProblemCreateDto;
 import com.maksim.problemService.entity.Problem;
 import com.maksim.problemService.entity.ProblemConstraints;
 import com.maksim.problemService.service.ProblemService;

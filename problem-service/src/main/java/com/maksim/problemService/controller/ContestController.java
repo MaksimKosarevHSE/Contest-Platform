@@ -1,16 +1,13 @@
 package com.maksim.problemService.controller;
 
-import com.maksim.problemService.dto.*;
-import com.maksim.problemService.entity.Contest;
+import com.maksim.problemService.dto.contest.ContestSignatureDto;
+import com.maksim.problemService.dto.contest.CreateContestDto;
+import com.maksim.problemService.dto.problem.ProblemSignature;
 import com.maksim.problemService.entity.Problem;
 import com.maksim.problemService.entity.ProblemConstraints;
 import com.maksim.problemService.service.ContestService;
-import com.maksim.problemService.service.ProblemService;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
