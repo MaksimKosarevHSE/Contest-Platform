@@ -16,14 +16,16 @@ import java.util.List;
 
 @RestController
 @CrossOrigin
-public class ProblemsetController {
-    private ProblemService problemService;
-    private int PAGE_SIZE = 20;
+public class ProblemSetController {
+    private final ProblemService problemService;
 
-    public ProblemsetController(ProblemService service) {
+    private final int PAGE_SIZE = 20;
+
+    public ProblemSetController(ProblemService service) {
         this.problemService = service;
     }
 
+    // HAS TESTED
     @PostMapping(value = "/problem", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Object> createProblem(@ModelAttribute ProblemCreateDto problemCreateDto) {
         int userId = 1;
@@ -35,7 +37,7 @@ public class ProblemsetController {
         }
     }
 
-
+    // HAS TESTED
     @GetMapping("/problem/{id}")
     public ResponseEntity<Object> getProblemById(@PathVariable Integer id) {
         var opt = problemService.findById(id);
@@ -45,6 +47,7 @@ public class ProblemsetController {
         return ResponseEntity.ok(opt.get());
     }
 
+    // HAS TESTED
     @GetMapping("/problem/{id}/constraints")
     public ResponseEntity<Object> getConstraintsById(@PathVariable Integer id) {
         ProblemConstraints constraints = problemService.getConstraints(id);
@@ -53,13 +56,14 @@ public class ProblemsetController {
         }
         return ResponseEntity.ok(constraints);
     }
-
+    // HAS TESTED
     @GetMapping("/problem/page/{num}")
     public ResponseEntity<Object> getProblemsPage(@PathVariable Integer num) {
         var page = problemService.getProblemsPage(num, PAGE_SIZE);
         return ResponseEntity.ok(page);
     }
 
+    // HAS TESTED
     @GetMapping("/problem/signature")
     public ResponseEntity<Object> getProblemsSignatures(@RequestParam(defaultValue = "1") Integer num) {
         var page = problemService.getProblemsSignaturesPage(num, PAGE_SIZE);

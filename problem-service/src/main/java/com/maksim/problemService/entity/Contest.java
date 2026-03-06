@@ -25,8 +25,6 @@ public class Contest {
     private LocalDateTime startTime;
     @Column(name = "end_time")
     private LocalDateTime endTime;
-    @Column(name = "is_running")
-    private boolean isRunning;
     @OneToMany(mappedBy = "contest")
     private List<ContestProblem> problems;
 

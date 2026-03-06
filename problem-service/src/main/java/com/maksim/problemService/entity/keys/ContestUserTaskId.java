@@ -1,4 +1,4 @@
-package com.maksim.standings_service.entity.key;
+package com.maksim.problemService.entity.keys;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

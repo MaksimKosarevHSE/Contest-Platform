@@ -11,10 +11,9 @@ import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
-public class ContestSignatureDto{
+public class ContestSignatureDto {
     private int id;
     private int authorId;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-    private boolean isRunning;
 }

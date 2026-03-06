@@ -1,0 +1,153 @@
+//package com.maksim.problemService.service;
+//
+//
+//import com.maksim.problemService.entity.ContestUser;
+//import com.maksim.problemService.entity.ContestUserTask;
+//import com.maksim.problemService.entity.keys.ContestUserId;
+//import com.maksim.problemService.repository.ContestUserRepository;
+//import com.maksim.problemService.repository.ContestUserTaskRepository;
+//import lombok.extern.slf4j.Slf4j;
+//import org.springframework.stereotype.Service;
+//import tools.jackson.core.JacksonException;
+//import tools.jackson.databind.ObjectMapper;
+//
+//import java.util.ArrayList;
+//import java.util.List;
+//import java.util.Map;
+//import java.util.Optional;
+//import java.util.concurrent.TimeUnit;
+//
+//
+//@Service
+//@Slf4j
+//public class StandingsService {
+//    private ContestUserRepository contestUserRepository;
+//    private ContestUserTaskRepository contestUserTaskRepository;
+//    private ObjectMapper om;
+//    private final Integer STANDINGS_PAGE_SIZE = 3;
+//
+//    public StandingsService(ContestUserRepository contestUserRepository, ContestUserTaskRepository contestUserTaskRepository, ObjectMapper om) {
+//        this.contestUserRepository = contestUserRepository;
+//        this.contestUserTaskRepository = contestUserTaskRepository;
+//        this.om = om;
+//    }
+//
+//    public String getUserContestKey(int userId, int contestId) {
+//        return "contest:" + contestId + ":user:" + userId + ":tasks";
+//    }
+//
+//    public String getContestScoresKey(int contestId) {
+//        return "contest:" + contestId + ":scores";
+//    }
+//
+//    public Optional<ContestUserTask> getUserTaskProgress(int userId, int contestId, int taskId) {
+//        String key = getUserContestKey(userId, contestId);
+//        String userTaskJson = (String) redisTemplate.opsForHash().get(key, taskId);
+//        if (userTaskJson != null) {
+//            try {
+//                return Optional.of(om.readValue(userTaskJson, ContestUserTask.class));
+//            } catch (JacksonException e) {
+//                log.error(e.getMessage());
+//            }
+//        }
+//        var cutId = new ContestUserTaskId(contestId, userId, taskId);
+//        Optional<ContestUserTask> cut = contestUserTaskRepository.findById(cutId);
+//        cut.ifPresent((obj) -> {
+//            redisTemplate.opsForHash().put(getUserContestKey(userId, contestId), taskId, om.writeValueAsString(obj));
+//        });
+//        return cut;
+//    }
+//
+//    public void updateUserTaskProgress(StandingsUpdateEvent event) {
+//        int userId = event.getUserId();
+//        int contestId = event.getContestId();
+//        int taskId = event.getProblemId();
+//        var cutId = new ContestUserTaskId(contestId, userId, taskId);
+//        Optional<ContestUserTask> cutOpt = contestUserTaskRepository.findById(cutId);
+//        ContestUserTask cut = cutOpt.orElseGet(() -> new ContestUserTask(cutId)); // тут скорее всего надо сразу сроу кидать
+//        if (cut.getIsSolved()) {
+//            return;
+//        }
+//        cut.setAttempts(cut.getAttempts() + 1);
+//        if (event.getStatus() == Status.OK) {
+//            cut.setIsSolved(true);
+//            cut.setSolutionTime(event.getSubmissionTime());
+//            cut.setScore(event.getScore());
+//        } else {
+//            cut.addFine(event.getFine());
+//        }
+//        contestUserTaskRepository.save(cut);
+//
+//        if (event.getStatus() == Status.OK) {
+//            var cuId = new ContestUserId(contestId, userId);
+//            Optional<ContestUser> cuOpt = contestUserRepository.findById(cuId);
+//            ContestUser cu = cuOpt.orElseGet(() -> new ContestUser(cuId));
+//            cu.incrementTaskSolved();
+//            int delta = Integer.max(0, event.getScore() - cut.getFine());
+//            cu.addScore(delta);
+//            contestUserRepository.save(cu);
+//
+//            String key = getContestScoresKey(contestId);
+//            redisTemplate.opsForZSet().incrementScore(key, String.valueOf(userId), delta);
+//            redisTemplate.expire(key, 5, TimeUnit.HOURS);
+//        }
+//        String key = getUserContestKey(userId, contestId);
+//        redisTemplate.opsForHash().put(key, taskId, om.writeValueAsString(cut));
+//        redisTemplate.expire(key, 5, TimeUnit.HOURS);
+//    }
+//
+//    public int getScore(int userId, int contestId){
+//        Double score = redisTemplate.opsForZSet().score(getContestScoresKey(contestId), String.valueOf(userId));
+//        if (score != null) return score.intValue();
+//        return getContestUser(userId,contestId).getTotalScore();
+//        // TODO: добавить проверку на то что пользователь не решил ни одной задачи. заполнять таблицу нулями при регистрации!!!! контеста
+//    }
+//
+//    public int getProgress(int userId, int contestId){
+//        Long place = redisTemplate.opsForZSet().reverseRank(getContestScoresKey(contestId), userId);
+//        if (place != null) return place.intValue();
+//        return 0;
+//
+//        // TODO: пересчитывать всю таблицу......... или кинуть что подсчет таблицы недоступен, хотя n log(n) не такое уж и большое время для расчета таблицы
+//    }
+//
+//    public List<ContestUserTask> getStandings(int contestId, int page){
+//        var userIds = redisTemplate.opsForZSet().reverseRangeWithScores(getContestScoresKey(contestId), (long) page * STANDINGS_PAGE_SIZE, (long) STANDINGS_PAGE_SIZE * (page + 1) - 1);
+//        var table = new ArrayList<>(userIds.size());
+//        int place = 0;
+//        int prevScore = -1;
+//        for (var pair : userIds){
+//            var taskList = getUserTaskProgress(Integer.parseInt(pair.getValue()), contestId);
+//
+//            int curScore = pair.getScore().intValue();
+//            if (curScore != prevScore){
+//                place++;
+//            }
+//
+//            table.add(new UserProgressDto(pair.getValue(), place, , taskList))
+//        }
+//        return null;
+//        // TODO: рэнж запрос либо в редис или пересчитывание таблицы
+//    }
+//
+//    public ArrayList<TaskProgressDto> getUserTaskProgress(int userId, int contestId){
+//        Map<Object, Object> tasksJson = redisTemplate.opsForHash().entries(getUserContestKey(userId, contestId));
+//        var list = new ArrayList<TaskProgressDto>(tasksJson.size());
+//        for (var entry : tasksJson.entrySet()){
+//            var cur = om.readValue(entry.getValue().toString(), ContestUserTask.class);
+//            var dtoProgress = new TaskProgressDto(cur.getTaskId(), cur.getIsSolved(),cur.getAttempts(), 1, 2);
+//            list.add(dtoProgress);
+//        }
+//        list.sort((el1, el2) -> el1.getTaskId() - el2.getTaskId());
+//        return list;
+//    }
+//
+//    t
+//`
+//    public ContestUser getContesUser(int userId, int contestId){
+//        return contestUserRepository.findById(new ContestUserId(userId,contestId)).orElseThrow(() -> new RuntimeException("No user found"));
+//    }
+//
+//
+//
+//}

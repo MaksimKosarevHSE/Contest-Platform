@@ -36,8 +36,11 @@ import java.util.stream.Stream;
 @Transactional
 public class ProblemService {
     private final ProblemRepository problemRepository;
+
     private final ProblemCreateDtoValidator problemCreateDtoValidator;
+
     private final RestTemplate restTemplate = new RestTemplate();
+
     @Value("${test.service.url}")
     private String TEST_SERVICE_URL;
 

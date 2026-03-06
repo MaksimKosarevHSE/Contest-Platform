@@ -21,8 +21,9 @@ import java.util.TreeSet;
 @Service
 @Transactional
 public class ContestService {
-    private ProblemRepository problemRepository;
-    private ContestRepository contestRepository;
+    private final ProblemRepository problemRepository;
+
+    private final ContestRepository contestRepository;
 
     public ContestService(ProblemRepository problemRepository, ContestRepository contestRepository) {
         this.problemRepository = problemRepository;
@@ -41,8 +42,7 @@ public class ContestService {
     }
 
     public Problem getProblem(Integer contestId, Integer problemId) {
-        var problem = contestRepository.getProblem(contestId, problemId);
-        return problem;
+        return contestRepository.getProblem(contestId, problemId).orElseThrow(() -> new RuntimeException("No such problem with in contest"));
     }
 
     public List<ContestSignatureDto> getPublicContests(Integer page, Integer pageSize) {
@@ -82,6 +82,6 @@ public class ContestService {
     }
 
     public ProblemConstraints getConstraints(Integer contestId, Integer problemId) {
-        return contestRepository.getProblemConstraints(contestId, problemId);
+        return contestRepository.getProblemConstraints(contestId, problemId).orElseThrow(() -> new RuntimeException("No such problem with in contest"));
     }
 }

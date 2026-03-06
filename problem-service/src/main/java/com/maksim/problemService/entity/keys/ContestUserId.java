@@ -13,4 +13,13 @@ public class ContestUserId implements Serializable {
     private Integer userId;
     @Column(name = "contest_id")
     private Integer contestId;
+
+    public ContestUserId(Integer userId, Integer contestId) {
+        this.userId = userId;
+        this.contestId = contestId;
+    }
+
+    public ContestUserId() {
+
+    }
 }

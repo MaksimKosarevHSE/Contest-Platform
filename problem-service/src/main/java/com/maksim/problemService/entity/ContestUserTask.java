@@ -1,28 +1,32 @@
-package com.maksim.standings_service.entity;
+package com.maksim.problemService.entity;
 
-import com.maksim.standings_service.entity.key.ContestUserId;
-import com.maksim.standings_service.entity.key.ContestUserTaskId;
-import jakarta.persistence.EmbeddedId;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.MapsId;
-import jakarta.persistence.Table;
+import com.maksim.problemService.entity.keys.ContestUserTaskId;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+@Entity
 @Table(name = "contest_user_task")
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class ContestUserTask {
     @EmbeddedId
     private ContestUserTaskId id;
+
+    @ManyToOne
     @MapsId("contestId")
-    private int contestId;
-    @MapsId("userId")
-    private int userId;
+    @JoinColumn(name = "contest_id")
+    private Contest contest;
+
+    @ManyToOne
     @MapsId("taskId")
     @JoinColumn(name = "task_id")
-    private int taskId;
+    private Problem problem;
+
     private Boolean isSolved;
     private int attempts;
     private int score;

@@ -17,7 +17,7 @@ public class ProblemConstraints {
     private double compileTimeLimit;
     private double timeLimit;
     private double memoryLimit;
-    // if problem is included in contest
+    // если задача в не в проблем сете, а в контесте
     @Nullable
     private Integer contestId;
     @Nullable
