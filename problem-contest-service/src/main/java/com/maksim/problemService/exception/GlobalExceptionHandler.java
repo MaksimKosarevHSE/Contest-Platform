@@ -1,6 +1,5 @@
 package com.maksim.problemService.exception;
 
-import jakarta.xml.bind.ValidationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -18,7 +17,7 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(ex.getMessage()));
     }
 
-    @ExceptionHandler(ValidationException.class)
+    @ExceptionHandler(com.maksim.problemService.exception.ValidationException.class)
     public ResponseEntity<ErrorResponse> handleValidation(ValidationException ex) {
         return ResponseEntity.badRequest()
                 .body(new ErrorResponse(ex.getMessage()));

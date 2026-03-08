@@ -4,6 +4,7 @@ package com.maksim.problemService.service;
 import com.maksim.problemService.dto.problem.ProblemCreateDto;
 import com.maksim.problemService.dto.problem.ProblemSignature;
 import com.maksim.problemService.event.SendTestCasesToJudgeServiceDto;
+import com.maksim.problemService.exception.ResourceNotFoundException;
 import com.maksim.problemService.validators.ProblemCreateDtoValidator;
 import com.maksim.problemService.entity.CheckerType;
 import com.maksim.problemService.entity.ProblemConstraints;
@@ -40,16 +41,14 @@ public class ProblemService {
         this.problemCreateDtoValidator = problemCreateDtoValidator;
     }
 
-    public Optional<Problem> findById(int id) {
-        return problemRepository.findById(id);
+    public Problem findById(int id) {
+        return problemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("No problem found with id " + id));
     }
 
     public ProblemConstraints getConstraints(int id) {
-        return problemRepository.getProblemConstraints(id);
-    }
-
-    public Page<Problem> getProblemsPage(int pageNumber, int pageSize) {
-        return problemRepository.findAll(PageRequest.of(pageNumber, pageSize));
+        return problemRepository.getProblemConstraints(id)
+                .orElseThrow(() -> new ResourceNotFoundException("No problem found with id " + id));
     }
 
     public Page<ProblemSignature> getProblemsSignaturesPage(int pageNumber, int pageSize) {

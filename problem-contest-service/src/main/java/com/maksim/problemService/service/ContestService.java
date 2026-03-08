@@ -10,6 +10,7 @@ import com.maksim.problemService.entity.ContestProblem;
 import com.maksim.problemService.entity.Problem;
 import com.maksim.problemService.entity.ProblemConstraints;
 import com.maksim.problemService.exception.ResourceNotFoundException;
+import com.maksim.problemService.exception.ValidationException;
 import com.maksim.problemService.repository.ContestRepository;
 import com.maksim.problemService.repository.ProblemRepository;
 import jakarta.transaction.Transactional;
@@ -77,14 +78,14 @@ public class ContestService {
         if (userProblemIntersection.size() != distinctProblemsId.size()) {
             // ограничения маленькие, О(n^2)
             Problem tmp = new Problem();
-            StringBuilder message = new StringBuilder("No problems found with ids: [");
+            StringBuilder message = new StringBuilder("Some problems are not found or do not belong you. Incorrect ids: [");
             for (var taskId : distinctProblemsId) {
                 tmp.setId(taskId);
                 if (!userProblemIntersection.contains(tmp)) message.append(taskId).append(", ");
             }
             message.setLength(message.length() - 2);
             message.append("]");
-            throw new ResourceNotFoundException(message.toString());
+            throw new ValidationException(message.toString());
         }
 
         dto.setProblemsId(distinctProblemsId);

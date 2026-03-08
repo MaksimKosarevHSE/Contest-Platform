@@ -7,6 +7,7 @@
     import com.maksim.problemService.entity.ProblemConstraints;
     import org.springframework.data.domain.Page;
     import org.springframework.data.domain.PageRequest;
+    import org.springframework.data.domain.Pageable;
     import org.springframework.data.jpa.repository.JpaRepository;
     import org.springframework.data.jpa.repository.Query;
     import org.springframework.stereotype.Repository;
@@ -24,12 +25,12 @@
 
 
         @Query("select new com.maksim.problemService.dto.contest.ContestSignatureDto(c.id, c.authorId, c.startTime, c.endTime) from Contest c order by c.startTime desc")
-        Page<ContestSignatureDto> getAll(PageRequest of);
+        Page<ContestSignatureDto> getAll(Pageable of);
 
         @Query("select new com.maksim.problemService.dto.contest.ContestSignatureDto(cu.contest.id, cu.contest.authorId, cu.contest.startTime, cu.contest.endTime) from ContestUser cu where cu.id.userId = :userId order by cu.contest.startTime desc")
-        Page<ContestSignatureDto> getUserContests(int userId, PageRequest of);
+        Page<ContestSignatureDto> getUserContests(int userId, Pageable of);
 
-        @Query("select p from Problem p where p.creatorId = :authorId and p.isPublic = false and p.id in (:uniqueIds)")
+        @Query("select p from Problem p where p.creatorId = :authorId and p.id in (:uniqueIds)")
         List<Problem> getAuthorProblemsList(int authorId, List<Integer> uniqueIds);
 
         @Query("select new com.maksim.problemService.entity.ProblemConstraints(cp.problem.id, cp.problem.compileTimeLimit, cp.problem.timeLimit, cp.problem.memoryLimit, cp.contest.id, cp.contest.startTime, cp.contest.endTime) from ContestProblem cp where cp.contest.id= :contestId and cp.problem.id = :problemId")
