@@ -28,7 +28,6 @@ public class ContestUser {
         this.id = cuId;
     }
 
-
     public void addScore(int x) {
         totalScore += x;
     }

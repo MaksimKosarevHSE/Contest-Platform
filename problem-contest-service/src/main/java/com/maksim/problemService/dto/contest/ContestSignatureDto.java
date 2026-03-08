@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Schema(description = "Краткая информация о контесте")
+@Schema(description = "Short information about contest")
 public class ContestSignatureDto {
     private Integer id;
     private Integer authorId;

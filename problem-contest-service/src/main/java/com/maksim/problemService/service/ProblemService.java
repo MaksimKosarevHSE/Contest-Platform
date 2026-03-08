@@ -1,6 +1,7 @@
 package com.maksim.problemService.service;
 
 
+import com.maksim.problemService.dto.mapper.ProblemMapper;
 import com.maksim.problemService.dto.problem.ProblemCreateDto;
 import com.maksim.problemService.dto.problem.ProblemSignature;
 import com.maksim.problemService.event.SendTestCasesToJudgeServiceDto;
@@ -31,13 +32,15 @@ public class ProblemService {
     private final ProblemValidator problemValidator;
 
     private final RestTemplate restTemplate = new RestTemplate();
+    private final ProblemMapper problemMapper;
 
     @Value("${test.service.url}")
     private String TEST_SERVICE_URL;
 
-    ProblemService(ProblemRepository pr, ProblemValidator problemValidator) {
+    ProblemService(ProblemRepository pr, ProblemValidator problemValidator, ProblemMapper problemMapper) {
         this.problemRepository = pr;
         this.problemValidator = problemValidator;
+        this.problemMapper = problemMapper;
     }
 
     public Problem findById(int id) {
@@ -54,35 +57,21 @@ public class ProblemService {
         return problemRepository.getProblemsSignatures(PageRequest.of(pageNumber, pageSize));
     }
 
-    public Problem createProblem(ProblemCreateDto problemCreateDto, int creatorId) throws IOException{
+    public Problem createProblem(ProblemCreateDto problemCreateDto, int creatorId) {
         problemValidator.validate(problemCreateDto);
 
-        Problem problem = new Problem();
-        BeanUtils.copyProperties(problemCreateDto,problem);
+        Problem problem = problemMapper.toEntity(problemCreateDto);
         problem.setCreatorId(creatorId);
 
-        var saveTestsDto = new SendTestCasesToJudgeServiceDto();
-
-        saveTestsDto.setCountOfTestCases(problemCreateDto.getTestCasesNum());
-        saveTestsDto.setCheckerType(problemCreateDto.getCheckerType());
-
-        if (saveTestsDto.getCheckerType() == CheckerType.CUSTOM_CHECKER){
-            saveTestsDto.setCheckerSourceCode(problemCreateDto.getFileSourceChecker().getBytes());
-            saveTestsDto.setCheckerLanguage(problemCreateDto.getCheckerLanguage());
-        }
-        for (var el : problemCreateDto.getInputTestCases()) {
-            saveTestsDto.getTestFilesContent().add(el.getBytes());
-            saveTestsDto.getTestFilesNames().add(el.getOriginalFilename());
-        }
-        for (var el : problemCreateDto.getOutputTestCases()) {
-            saveTestsDto.getTestFilesContent().add(el.getBytes());
-            saveTestsDto.getTestFilesNames().add(el.getOriginalFilename());
-        }
+        var saveTestsDto = SendTestCasesToJudgeServiceDto.from(problemCreateDto);
 
         problem = problemRepository.save(problem);
         saveTestsDto.setProblemId(problem.getId());
-        ResponseEntity<String> response = restTemplate.postForEntity(TEST_SERVICE_URL + "/append-tests", saveTestsDto, String.class);
-        if (response.getStatusCode() != HttpStatus.OK){
+
+        ResponseEntity<String> response = restTemplate
+                .postForEntity(TEST_SERVICE_URL + "/append-tests", saveTestsDto, String.class);
+
+        if (response.getStatusCode() != HttpStatus.OK) {
             throw new RuntimeException(response.getBody());
         }
         return problem;

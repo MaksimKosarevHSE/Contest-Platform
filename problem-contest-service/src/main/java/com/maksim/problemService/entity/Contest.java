@@ -12,6 +12,8 @@ import java.util.List;
 @Entity
 @Table(name = "contests")
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Contest {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
