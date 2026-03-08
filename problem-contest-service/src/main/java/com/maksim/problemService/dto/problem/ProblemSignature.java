@@ -1,17 +1,18 @@
 package com.maksim.problemService.dto.problem;
 
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import com.maksim.problemService.entity.Problem;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.*;
 
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter
-@Setter
-public class ProblemSignature {
-    private int id;
-    private String title;
-    private int complexity;
+@Builder
+@Schema(description = "Полное описание задачи")
+public record ProblemSignature(
+        Integer id,
+        String title,
+        int complexity
+) {
+//    public static ProblemSignature from(Problem problem) {
+//        return new ProblemSignature(problem.getId(), problem.getTitle(),problem.getComplexity());
+//    }
 }

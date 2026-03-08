@@ -4,6 +4,7 @@ import com.maksim.submissionAcceptorService.dto.SolutionJudgedEvent;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
@@ -17,12 +18,18 @@ import java.util.Map;
 
 @Configuration
 public class KafkaConfig {
+    @Value("${solution.submitted.event.topic}")
+    private String SOL_SUB_TOP;
+    @Value("${consumer.group_id}")
+    private String GROUP_ID;
+    @Value("${spring.kafka.bootstrap-servers}")
+    private String KAFKA_BOOTSTRAP;
 
     @Bean
     ConsumerFactory<Integer, SolutionJudgedEvent> consumerFactory(){
         Map<String, Object> props = new HashMap<>();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "sub_micro");
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID);
         props.put(JacksonJsonDeserializer.TRUSTED_PACKAGES, "*");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JacksonJsonDeserializer.class);
@@ -39,7 +46,7 @@ public class KafkaConfig {
 
     @Bean
     NewTopic createTopic(){
-        return TopicBuilder.name("solution-submitted-event-topic")
+        return TopicBuilder.name(SOL_SUB_TOP)
                         .partitions(3)
                         .build();
 

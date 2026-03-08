@@ -53,8 +53,10 @@ public class TestSystem {
     private final Duration TTL = Duration.ofMinutes(5);
 
     private Random rand = new Random();
-    @Value("${testing.solution.judged.event.topic}")
+
+    @Value("${solution.judged.event.topic}")
     private String SUBMISSION_JUDGED_EVENT_TOPIC;
+
     private SimpMessagingTemplate msgTemplate;
     private ReactiveRedisTemplate<String, JudgingProgress> redisTemplate;
     private KafkaTemplate<Integer, SolutionJudgedEvent> kafkaTemplate;
@@ -68,38 +70,38 @@ public class TestSystem {
     //    @Autowired
 //    private KafkaTemplate<>
     public void processSubmission(SolutionSubmittedEvent submissionMeta, int workerId) throws IOException, InterruptedException, ExecutionException {
-            var verdictInfo = new VerdictInfo();
-            try {
-                log.debug("Worker {} started to test submission {}", workerId, submissionMeta.getSubmissionId());
-                Path sessionDir = Files.createTempDirectory(Path.of(PATH_TO_SESSION_STORE), null);
-                log.info("PATH: {}", sessionDir.toAbsolutePath().toString());
-                Path sourceFile = Files.createFile(sessionDir.resolve(SOURCE_FILE_NAME + submissionMeta.getLanguage().sourceSuffix));
-                Files.writeString(sourceFile, submissionMeta.getSource());
-                Path compiledFile = sourceFile;
-                if (submissionMeta.getLanguage().needCompilation) {
-                    log.debug("Start compilation stage of submission {}", submissionMeta.getSubmissionId());
-                    compiledFile = compileSolution(sessionDir, sourceFile, submissionMeta, verdictInfo);
-                    log.debug("Compilation stage of submission {} passed success", submissionMeta.getSubmissionId());
-                }
-                log.debug("Start testing stage of submission {} ", submissionMeta.getSubmissionId());
-                testSolution(compiledFile, sessionDir, submissionMeta, verdictInfo);
-                log.debug("Submission {} was tested successfully with verdict {}", submissionMeta.getSubmissionId(), verdictInfo);
-            } catch (InterruptedException | IOException ex) {
-                log.error(ex.getMessage());
-                throw ex;
-            } catch (BadVerdict ex) {
-                log.debug("BadVerdict of submission {}. {}", submissionMeta.getSubmissionId(), ex.getMessage());
+        var verdictInfo = new VerdictInfo();
+        try {
+            log.debug("Worker {} started to test submission {}", workerId, submissionMeta.getSubmissionId());
+            Path sessionDir = Files.createTempDirectory(Path.of(PATH_TO_SESSION_STORE), null);
+            log.info("PATH: {}", sessionDir.toAbsolutePath().toString());
+            Path sourceFile = Files.createFile(sessionDir.resolve(SOURCE_FILE_NAME + submissionMeta.getLanguage().sourceSuffix));
+            Files.writeString(sourceFile, submissionMeta.getSource());
+            Path compiledFile = sourceFile;
+            if (submissionMeta.getLanguage().needCompilation) {
+                log.debug("Start compilation stage of submission {}", submissionMeta.getSubmissionId());
+                compiledFile = compileSolution(sessionDir, sourceFile, submissionMeta, verdictInfo);
+                log.debug("Compilation stage of submission {} passed success", submissionMeta.getSubmissionId());
             }
+            log.debug("Start testing stage of submission {} ", submissionMeta.getSubmissionId());
+            testSolution(compiledFile, sessionDir, submissionMeta, verdictInfo);
+            log.debug("Submission {} was tested successfully with verdict {}", submissionMeta.getSubmissionId(), verdictInfo);
+        } catch (InterruptedException | IOException ex) {
+            log.error(ex.getMessage());
+            throw ex;
+        } catch (BadVerdict ex) {
+            log.debug("BadVerdict of submission {}. {}", submissionMeta.getSubmissionId(), ex.getMessage());
+        }
 
-            kafkaTemplate.send(SUBMISSION_JUDGED_EVENT_TOPIC, new SolutionJudgedEvent(submissionMeta.getSubmissionId(), verdictInfo.getStatus(), verdictInfo.getNumOfFailureTest(), verdictInfo.getUsedMemory(), verdictInfo.getExecutionTime())).get();
-            sendJudgingProgress(submissionMeta.getSubmissionId(), verdictInfo.getStatus(), verdictInfo.getNumOfFailureTest(),verdictInfo.getExecutionTime(),verdictInfo.getUsedMemory());
+        kafkaTemplate.send(SUBMISSION_JUDGED_EVENT_TOPIC, new SolutionJudgedEvent(submissionMeta.getSubmissionId(), verdictInfo.getStatus(), verdictInfo.getNumOfFailureTest(), verdictInfo.getUsedMemory(), verdictInfo.getExecutionTime())).get();
+        sendJudgingProgress(submissionMeta.getSubmissionId(), verdictInfo.getStatus(), verdictInfo.getNumOfFailureTest(), verdictInfo.getExecutionTime(), verdictInfo.getUsedMemory());
 
-            // пока временное DTO в бд (только статус с данными тестирования)
-            // в кафку в сервис посылок -> (в бд, redis) -> нотификэйшн сервис
+        // пока временное DTO в бд (только статус с данными тестирования)
+        // в кафку в сервис посылок -> (в бд, redis) -> нотификэйшн сервис
     }
 
 
-    private void testSolution(Path compiledFile,Path sessionDir, SolutionSubmittedEvent submissionMeta, VerdictInfo verdictInfo) throws IOException, InterruptedException {
+    private void testSolution(Path compiledFile, Path sessionDir, SolutionSubmittedEvent submissionMeta, VerdictInfo verdictInfo) throws IOException, InterruptedException {
         Path judgeTestDir = Path.of(PATH_TO_TESTS).resolve("problem_" + submissionMeta.getProblemId());
         TestsMetadata meta = new ObjectMapper().readValue(judgeTestDir.resolve("meta.json"), TestsMetadata.class);
         int testsCnt = meta.getTestCount();
@@ -148,8 +150,8 @@ public class TestSystem {
             }
 
             Path answerFile = judgeTestDir.resolve(i + ".out");
-            if (meta.getCheckerType() == CheckerType.DEFAULT_EXACT_MATCH_CHECKER){
-                exactMatchCheck(answerFile, contestantOutFile.toFile() , verdictInfo, i);
+            if (meta.getCheckerType() == CheckerType.DEFAULT_EXACT_MATCH_CHECKER) {
+                exactMatchCheck(answerFile, contestantOutFile.toFile(), verdictInfo, i);
             } else {
                 customChecker(judgeTestDir.resolve(meta.getCheckerFileName()),
                         meta.getCheckerLanguage(),
@@ -165,7 +167,7 @@ public class TestSystem {
         verdictInfo.setStatus(Status.OK);
     }
 
-    public void sendJudgingProgress(long submissionId, Status status, int testNum, int executionTime, int memory){
+    public void sendJudgingProgress(long submissionId, Status status, int testNum, int executionTime, int memory) {
         msgTemplate.convertAndSend("/topic/msg", new JudgingProgress(submissionId, status, testNum, LocalDateTime.now(), executionTime, memory));
 //        redisTemplate.opsForValue().set("sub:" + String.valueOf(submissionId), event, TTL).doOnError((error -> log.error("Error when sent progress in Redis"))).doOnSuccess(result-> System.out.println("SUCCESS")).subscribe();
     }
@@ -181,11 +183,11 @@ public class TestSystem {
         ProcessBuilder builder = new ProcessBuilder(command);
         Process process = builder.start();
         boolean successEnd = process.waitFor(JUDGING_TIME_LIMIT, TimeUnit.SECONDS);
-        if (!successEnd){
+        if (!successEnd) {
             log.debug("Checker checks submission too much time");
             throw new RuntimeException("Checker TL error");
         }
-        switch (process.exitValue()){
+        switch (process.exitValue()) {
             case 0:
                 break;
             case 1:
@@ -253,7 +255,7 @@ public class TestSystem {
                 if (!line1.equals(line2)) {
                     verdictInfo.setNumOfFailureTest(testNum);
                     verdictInfo.setStatus(Status.WRONG_ANSWER);
-                    throw new BadVerdict("The line " +  lineCnt + " is different from the judge's solution");
+                    throw new BadVerdict("The line " + lineCnt + " is different from the judge's solution");
                 }
                 lineCnt++;
             }

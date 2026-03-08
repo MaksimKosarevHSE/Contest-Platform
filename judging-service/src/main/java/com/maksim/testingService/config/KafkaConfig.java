@@ -22,14 +22,17 @@ import java.util.Map;
 @Configuration
 @EnableKafka
 public class KafkaConfig {
-    @Value("${spring.kafka.consumer.bootstrap-servers}")
+    @Value("${spring.kafka.bootstrap-servers}")
     String bootstrapServers;
 
-    @Value("${spring.kafka.consumer.group-id}")
+    @Value("${consumer.group_id}")
     String groupId;
 
     @Value("${spring.kafka.consumer.properties.spring.json.trusted.packages}")
     String trustedPackages;
+
+    @Value("${solution.judged.event.topic}")
+    String solutionJudgedTopic;
 
     @Bean
     ConsumerFactory<Integer, SolutionSubmittedEvent> consumerFactory(){
@@ -52,7 +55,7 @@ public class KafkaConfig {
 
     @Bean
     NewTopic createTopic(){
-        return TopicBuilder.name("solution-judged-event-topic")
+        return TopicBuilder.name(solutionJudgedTopic)
                 .partitions(3)
                 .build();
 

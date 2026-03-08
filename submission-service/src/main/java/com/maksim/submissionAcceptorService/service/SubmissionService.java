@@ -30,7 +30,7 @@ public class SubmissionService {
     @Value("${problem.service.url}")
     private String PROBLEM_SERVICE_URL;
 
-    @Value("${submission.event.topic}")
+    @Value("${solution.submitted.event.topic}")
     private String TOPIC_NAME;
 
     private KafkaTemplate<String, Object> kafkaTemplate;
@@ -108,9 +108,9 @@ public class SubmissionService {
 
 
     private ProblemConstraintsDto getProblemConstraints(int problemId, Integer contestId) {
-        String address = MessageFormat.format("http://{0}/problem/{1}/constraints", PROBLEM_SERVICE_URL, problemId);
+        String address = MessageFormat.format("{0}/problem/{1}/constraints", PROBLEM_SERVICE_URL, problemId);
         if (contestId != null)
-            address = MessageFormat.format("http://{0}/contest/{1}/problem/{2}/constraints", PROBLEM_SERVICE_URL, contestId, problemId);
+            address = MessageFormat.format("{0}/contest/{1}/problem/{2}/constraints", PROBLEM_SERVICE_URL, contestId, problemId);
 
         ResponseEntity<ProblemConstraintsDto> response = restTemplate.getForEntity(address,
                 ProblemConstraintsDto.class, problemId);

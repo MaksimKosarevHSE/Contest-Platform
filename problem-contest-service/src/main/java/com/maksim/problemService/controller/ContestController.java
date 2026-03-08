@@ -5,9 +5,14 @@ import com.maksim.problemService.dto.contest.CreateContestDto;
 import com.maksim.problemService.dto.problem.ProblemSignature;
 import com.maksim.problemService.entity.Problem;
 import com.maksim.problemService.entity.ProblemConstraints;
+import com.maksim.problemService.exception.ErrorResponse;
 import com.maksim.problemService.service.ContestService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,51 +30,55 @@ public class ContestController {
         this.contestService = contestService;
     }
 
-    // сигнатуры задач TESTED
     @GetMapping("/contest/{contestId}/problems")
+    @Operation(summary = "Get signatures of contest's problems")
     public ResponseEntity<Object> getSignatures(@PathVariable Integer contestId) {
         List<ProblemSignature> constraints = contestService.getAllProblemSignatures(contestId);
         return ResponseEntity.ok(constraints);
     }
 
-    // полное описание заадачи TESTED
+
     @GetMapping("/contest/{contestId}/problem/{problemId}")
+    @Operation(summary = "Get full problem description")
     public ResponseEntity<Object> getProblemById(@PathVariable Integer contestId, @PathVariable Integer problemId) {
         Problem problem = contestService.getProblem(contestId, problemId);
         return ResponseEntity.ok(problem);
     }
 
-    //все публичные контесты TESTED
+
     @GetMapping("/contests")
+    @Operation(summary = "Get page of contests")
     public ResponseEntity<Object> getAllPublicContests(@RequestParam(defaultValue = "1") Integer page, HttpServletRequest req) {
-        List<ContestSignatureDto> list = contestService.getPublicContests(page, PAGE_SIZE);
-        System.out.println(req.getHeader("X-User-Handle"));
-        return ResponseEntity.ok(list);
+        Page<ContestSignatureDto> pageResult = contestService.getPublicContests(page, PAGE_SIZE);
+        return ResponseEntity.ok(pageResult);
     }
 
-    // все котесты в которых участвовал / зарегестрирован / участвует текущий пользователь
     @GetMapping("/contests/my")
-    public ResponseEntity<Object> getUserContests(@RequestParam(defaultValue = "1") Integer page) {
-        int userId = 1;
-        List<ContestSignatureDto> list = contestService.getUserContests(userId, page, PAGE_SIZE);
+    @Operation(summary = "Get history of participation in contests")
+    public ResponseEntity<Object> getUserContests(@RequestParam(defaultValue = "1") Integer page,
+                                                  @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("User is not authenticated"));
+        }
+        Page<ContestSignatureDto> list = contestService.getUserContests(userId, page, PAGE_SIZE);
         return ResponseEntity.ok(list);
     }
 
-
-    // TESTED
     @GetMapping("contest/{contestId}/problem/{problemId}/constraints")
+    @Operation(summary = "Get problem's runtime limit, memory limit, compile time limit")
     public ResponseEntity<Object> getConstraintsById(@PathVariable Integer contestId, @PathVariable Integer problemId) {
         ProblemConstraints constraints = contestService.getConstraints(contestId, problemId);
         return ResponseEntity.ok(constraints);
     }
 
 
-
-
-    //TODO: дописать
     @PostMapping("/contest/create")
-    public ResponseEntity<Object> createContest(@ModelAttribute CreateContestDto dto) {
-        int userId = 1;
+    @Operation(summary = "Create new contest")
+    public ResponseEntity<Object> createContest(@ModelAttribute CreateContestDto dto,
+                                                @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("User is not authenticated"));
+        }
         int id = contestService.createContest(dto, userId);
         return ResponseEntity.ok(id);
     }

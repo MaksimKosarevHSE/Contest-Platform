@@ -83,7 +83,7 @@ public class ProblemService {
 
         problem = problemRepository.save(problem);
         saveTestsDto.setProblemId(problem.getId());
-        ResponseEntity<String> response = restTemplate.postForEntity("http://" + TEST_SERVICE_URL + "/append-tests", saveTestsDto, String.class);
+        ResponseEntity<String> response = restTemplate.postForEntity(TEST_SERVICE_URL + "/append-tests", saveTestsDto, String.class);
         if (response.getStatusCode() != HttpStatus.OK){
             throw new RuntimeException(response.getBody());
         }

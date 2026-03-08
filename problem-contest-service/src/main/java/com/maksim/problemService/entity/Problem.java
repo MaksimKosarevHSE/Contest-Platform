@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name = "problems")
@@ -64,5 +65,17 @@ public class Problem {
         this.compileTimeLimit = compileTimeLimit;
         this.timeLimit = timeLimit;
         this.memoryLimit = memoryLimit;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Problem problem = (Problem) o;
+        return Objects.equals(id, problem.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
     }
 }

@@ -27,9 +27,9 @@ public class AuthFilter implements GlobalFilter, Ordered {
 
     private final List<String> openEndpoints = List.of("/api/auth/register");
 
-    public AuthFilter() {
+    public AuthFilter(@Value("${auth.service.url}") String url) {
         this.authServiceWebClient = WebClient.builder()
-                .baseUrl("http://localhost:8005")
+                .baseUrl(url)
                 .build();
     }
 
