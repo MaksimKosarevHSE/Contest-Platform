@@ -3,16 +3,14 @@ package com.maksim.problemService.service;
 
 import com.maksim.problemService.dto.mapper.ProblemMapper;
 import com.maksim.problemService.dto.problem.ProblemCreateDto;
-import com.maksim.problemService.dto.problem.ProblemSignature;
-import com.maksim.problemService.event.SendTestCasesToJudgeServiceDto;
+import com.maksim.problemService.dto.problem.ProblemSignatureResponseDto;
+import com.maksim.problemService.dto.problem.SendTestCasesToJudgeServiceDto;
 import com.maksim.problemService.exception.ResourceNotFoundException;
 import com.maksim.problemService.validators.ProblemValidator;
-import com.maksim.problemService.entity.CheckerType;
 import com.maksim.problemService.entity.ProblemConstraints;
 import com.maksim.problemService.entity.Problem;
 import com.maksim.problemService.repository.ProblemRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 
@@ -21,8 +19,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-
-import java.io.IOException;
 
 @Service
 @Transactional
@@ -53,8 +49,8 @@ public class ProblemService {
                 .orElseThrow(() -> new ResourceNotFoundException("No problem found with id " + id));
     }
 
-    public Page<ProblemSignature> getProblemsSignaturesPage(int pageNumber, int pageSize) {
-        return problemRepository.getProblemsSignatures(PageRequest.of(pageNumber, pageSize));
+    public Page<ProblemSignatureResponseDto> getProblemsSignaturesPage(int pageNumber, int pageSize) {
+        return problemRepository.getProblemsSignatures(PageRequest.of(pageNumber - 1, pageSize));
     }
 
     public Problem createProblem(ProblemCreateDto problemCreateDto, int creatorId) {

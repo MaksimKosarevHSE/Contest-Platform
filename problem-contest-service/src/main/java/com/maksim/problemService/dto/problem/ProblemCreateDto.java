@@ -1,8 +1,8 @@
 package com.maksim.problemService.dto.problem;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.maksim.problemService.entity.CheckerType;
-import com.maksim.problemService.entity.ProgrammingLanguage;
+import com.maksim.problemService.enums.CheckerType;
+import com.maksim.problemService.enums.ProgrammingLanguage;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;

@@ -5,14 +5,14 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data
+import java.util.List;
+
 @AllArgsConstructor
+@Data
 @NoArgsConstructor
-public class TaskProgressDto {
-    private int taskId;
-    private boolean isSolved;
-    private int attempts;
-    private int secondsAfterSolving;
+public class UserProgressResponseDto {
+    private int userId;
+    int place;
+    List<TaskProgressResponseDto> taskProgress;
     private int score;
-//    private int fine;
 }

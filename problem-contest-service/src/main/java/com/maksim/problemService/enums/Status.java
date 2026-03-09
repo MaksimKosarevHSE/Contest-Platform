@@ -1,4 +1,4 @@
-package com.maksim.problemService.entity;
+package com.maksim.problemService.enums;
 
 public enum Status {
     IN_QUEUE, TESTING, OK, TIME_LIMIT, MEMORY_LIMIT,

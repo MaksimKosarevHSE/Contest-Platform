@@ -1,14 +1,16 @@
 package com.maksim.problemService.service;
 
 
-import com.maksim.problemService.dto.standings.TaskProgressDto;
-import com.maksim.problemService.dto.standings.UserProgressDto;
+import com.maksim.problemService.dto.standings.TaskProgressResponseDto;
+import com.maksim.problemService.dto.standings.UserProgressResponseDto;
 import com.maksim.problemService.entity.ContestUser;
 import com.maksim.problemService.entity.ContestUserTask;
-import com.maksim.problemService.entity.Status;
+import com.maksim.problemService.enums.Status;
 import com.maksim.problemService.entity.keys.ContestUserId;
 import com.maksim.problemService.entity.keys.ContestUserTaskId;
-import com.maksim.problemService.event.StandingsUpdateEvent;
+import com.maksim.problemService.event.ContestSubmissionWasTestedEvent;
+import com.maksim.problemService.exception.ResourceNotFoundException;
+import com.maksim.problemService.repository.ContestRepository;
 import com.maksim.problemService.repository.ContestUserRepository;
 import com.maksim.problemService.repository.ContestUserTaskRepository;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -33,14 +35,17 @@ public class StandingsService {
 
     private final ContestUserTaskRepository cutRepository;
 
+    private final ContestRepository contestRepository;
     private final ObjectMapper om;
+
     private final ContestUserTaskRepository contestUserTaskRepository;
 
-    public StandingsService(StringRedisTemplate redisTemplate, ContestUserRepository cuRep, ContestUserTaskRepository cutRep, ObjectMapper om, ContestUserTaskRepository contestUserTaskRepository) {
+    public StandingsService(StringRedisTemplate redisTemplate, ContestUserRepository cuRep, ContestUserTaskRepository cutRep, ObjectMapper om, ContestUserTaskRepository contestUserTaskRepository, ContestRepository contestRepo) {
         this.redisTemplate = redisTemplate;
         this.cutRepository = cutRep;
         this.cuRepository = cuRep;
         this.om = om;
+        this.contestRepository = contestRepo;
         this.contestUserTaskRepository = contestUserTaskRepository;
     }
 
@@ -52,7 +57,8 @@ public class StandingsService {
         return REDIS_CONTEST_USER_DETAILS_PREFIX + contestId + ":user:" + userId;
     }
 
-    public List<UserProgressDto> getLeaderboard(int contestId, int page, int pageSize) {
+    public List<UserProgressResponseDto> getLeaderboard(int contestId, int page, int pageSize) {
+        page--;
         int start = pageSize * page;
         int end = start + page - 1;
         String leaderboardKey = getLeaderboardKey(contestId);
@@ -63,18 +69,16 @@ public class StandingsService {
 
         var leaders = redisTemplate.opsForZSet().reverseRangeWithScores(getLeaderboardKey(contestId), start, end);
 
-        var resultList = new ArrayList<UserProgressDto>(leaders.size());
+        var resultList = new ArrayList<UserProgressResponseDto>(leaders.size());
         int rank = 1;
 
         for (var tuple : leaders) {
             int userId = Integer.parseInt(tuple.getValue());
-
             var userProgress = getUserProgressHash(contestId, userId);
             if (userProgress == null) {
                 userProgress = getUserProgressDb(contestId, userId);
                 saveUserProgressHash(contestId, userProgress);
             }
-
             userProgress.setPlace(rank);
             resultList.add(userProgress);
             ++rank;
@@ -83,13 +87,20 @@ public class StandingsService {
     }
 
 
-    public void handleUpdateEvent(StandingsUpdateEvent event) {
+    public UserProgressResponseDto getUserProgressDto(int contestId, int userId) {
+        var userProgress = getUserProgressHash(contestId, userId);
+        if (userProgress == null) {
+            userProgress = getUserProgressDb(contestId, userId);
+        }
+        return userProgress;
+    }
+
+    public void handleUpdateEvent(ContestSubmissionWasTestedEvent event) {
         int userId = event.getUserId();
         int contestId = event.getContestId();
         int taskId = event.getProblemId();
 
-        var cu = cuRepository.findById(new ContestUserId(userId, contestId))
-                .orElseThrow(() -> new RuntimeException("User is not registered"));
+        var cu = getContestUser(contestId, userId);
 
         var cutKey = new ContestUserTaskId(contestId, userId, taskId);
 
@@ -130,13 +141,12 @@ public class StandingsService {
         }
 
         redisTemplate.opsForHash().put(taskKey, String.valueOf(contestUserTask.getId().getTaskId()), taskJson);
-//        int totalFine = contestUserTask
-//                .stream().mapToInt(t -> t.getFine()).sum();
-
-//        redisTemplate.opsForHash().put(taskKey, "fine", )
     }
 
     private void rebuildStandingsAndProgressCache(int contestId) {
+        if (!contestRepository.existsById(contestId))
+            throw new ResourceNotFoundException("There is no contest with id " + contestId);
+
         String key = getLeaderboardKey(contestId);
         redisTemplate.delete(key);
         var allContestants = cuRepository.findById_ContestId(contestId);
@@ -152,29 +162,25 @@ public class StandingsService {
 
             var contestUserTasks = userToTasks.getOrDefault(userId, new ArrayList<>())
                     .stream().map(this::convert).toList();
-//            int totalFine = contestUserTasks
-//                    .stream().mapToInt(t -> t.getFine()).sum();
 
-            var cu = new UserProgressDto();
+            var cu = new UserProgressResponseDto();
             cu.setUserId(userId);
             cu.setTaskProgress(contestUserTasks);
-//            cu.setFine(totalFine);
-
             // hash updated
             saveUserProgressHash(contestId, cu);
         }
     }
 
-    private void saveUserProgressHash(int contestId, UserProgressDto cu) {
+    private void saveUserProgressHash(int contestId, UserProgressResponseDto cu) {
         String key = getUserDetailsKey(contestId, cu.getUserId());
         var mapa = new HashMap<String, String>();
-//        mapa.put("fine", String.valueOf(cu.getFine()));
+
         for (var task : cu.getTaskProgress()) {
             try {
                 String taskJson = om.writeValueAsString(task);
                 mapa.put(String.valueOf(task.getTaskId()), taskJson);
             } catch (Exception ex) {
-                throw new RuntimeException();
+                throw new RuntimeException(ex);
             }
         }
         redisTemplate.opsForHash().putAll(key, mapa);
@@ -182,35 +188,31 @@ public class StandingsService {
     }
 
 
+    private ContestUser getContestUser(int contestId, int userId) {
+        return cuRepository.findById(new ContestUserId(userId, contestId)).
+                orElseThrow(() -> new ResourceNotFoundException("User not registered in this contest"));
+    }
+
     //  прогресс без места и totalScore
-    private UserProgressDto getUserProgressDb(int contestId, int userId) {
-        var cuOpt = cuRepository.findById(new ContestUserId(userId, contestId));
-        if (cuOpt.isEmpty()) {
-            return null;
-        }
-        var cu = cuOpt.get();
+    private UserProgressResponseDto getUserProgressDb(int contestId, int userId) {
+        var cu = getContestUser(contestId, userId);
         var cut = contestUserTaskRepository.findById_ContestIdAndId_UserId(contestId, userId);
-//        int totalFine = cut.stream().mapToInt(t -> t.getFine()).sum();
         var tasks = cut.stream().map(this::convert).toList();
-        return new UserProgressDto(userId, 0, tasks, cu.getTotalScore());
+        return new UserProgressResponseDto(userId, 0, tasks, cu.getTotalScore());
     }
 
     // прогресс без места и totalScore
-    private UserProgressDto getUserProgressHash(int contestId, int userId) {
+    private UserProgressResponseDto getUserProgressHash(int contestId, int userId) {
         var mapa = redisTemplate.opsForHash().entries(getUserDetailsKey(userId, contestId));
         if (mapa == null) return null;
 
-//        var fineObj = mapa.remove("fine");
-//        int fine = fineObj != null ? Integer.parseInt(fineObj.toString()) : 0;
-
-        var up = new UserProgressDto();
+        var up = new UserProgressResponseDto();
         up.setUserId(userId);
-//        up.setFine(fine);
 
-        var tasks = new ArrayList<TaskProgressDto>();
+        var tasks = new ArrayList<TaskProgressResponseDto>();
         try {
             for (var nextTask : mapa.entrySet()) {
-                var taskProgress = om.readValue(nextTask.getValue().toString(), TaskProgressDto.class);
+                var taskProgress = om.readValue(nextTask.getValue().toString(), TaskProgressResponseDto.class);
                 tasks.add(taskProgress);
             }
         } catch (Exception ex) {
@@ -221,8 +223,8 @@ public class StandingsService {
         return up;
     }
 
-    private TaskProgressDto convert(ContestUserTask cut) {
-        return new TaskProgressDto(cut.getId().getTaskId(),
+    private TaskProgressResponseDto convert(ContestUserTask cut) {
+        return new TaskProgressResponseDto(cut.getId().getTaskId(),
                 cut.getIsSolved(),
                 cut.getAttempts(),
                 (int) Duration.between(cut.getContest().getStartTime(), cut.getSolutionTime()).getSeconds(),

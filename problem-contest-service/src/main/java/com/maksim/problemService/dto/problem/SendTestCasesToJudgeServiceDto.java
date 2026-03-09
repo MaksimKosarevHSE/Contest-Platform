@@ -1,13 +1,11 @@
-package com.maksim.problemService.event;
+package com.maksim.problemService.dto.problem;
 
-import com.maksim.problemService.dto.problem.ProblemCreateDto;
-import com.maksim.problemService.entity.CheckerType;
-import com.maksim.problemService.entity.ProgrammingLanguage;
+import com.maksim.problemService.enums.CheckerType;
+import com.maksim.problemService.enums.ProgrammingLanguage;
 import lombok.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 

@@ -11,14 +11,14 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Schema(description = "Short information about contest")
-public class ContestSignatureDto {
+public class ContestSignatureResponseDto {
     private Integer id;
     private Integer authorId;
     private String authorHandle;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 
-    public ContestSignatureDto(Integer id, Integer authorId, LocalDateTime startTime, LocalDateTime endTime) {
+    public ContestSignatureResponseDto(Integer id, Integer authorId, LocalDateTime startTime, LocalDateTime endTime) {
         this.id = id;
         this.authorId = authorId;
         this.startTime = startTime;

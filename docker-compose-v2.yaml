@@ -29,7 +29,7 @@ services:
     depends_on:
       - db
 
-  #добавить кафку
+  # listens to contest-submission-was-tested-event-topic
   problem-service:
     build: ./problem-contest-service
     container_name: problem-service
@@ -40,6 +40,7 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: root
       JUDGING_SERVICE_URL: http://judging-service:8002
+      AUTH_SERVICE_URL: http://auth-service:8003
     networks:
       - external
     depends_on:

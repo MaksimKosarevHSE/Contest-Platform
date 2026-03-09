@@ -1,7 +1,7 @@
 package com.maksim.problemService.validators;
 
 import com.maksim.problemService.dto.problem.ProblemCreateDto;
-import com.maksim.problemService.entity.CheckerType;
+import com.maksim.problemService.enums.CheckerType;
 import com.maksim.problemService.exception.ValidationException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;

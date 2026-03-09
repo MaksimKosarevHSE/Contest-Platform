@@ -1,17 +1,20 @@
 package com.maksim.problemService.service;
 
-import com.maksim.problemService.dto.contest.ContestSignatureDto;
+import com.maksim.problemService.dto.contest.ContestSignatureResponseDto;
 import com.maksim.problemService.dto.contest.CreateContestDto;
 import com.maksim.problemService.dto.mapper.ContestMapper;
 import com.maksim.problemService.dto.mapper.ProblemMapper;
-import com.maksim.problemService.dto.problem.ProblemSignature;
+import com.maksim.problemService.dto.problem.ProblemSignatureResponseDto;
 import com.maksim.problemService.entity.Contest;
-import com.maksim.problemService.entity.ContestProblem;
+import com.maksim.problemService.entity.ContestUser;
 import com.maksim.problemService.entity.Problem;
 import com.maksim.problemService.entity.ProblemConstraints;
+import com.maksim.problemService.entity.keys.ContestUserId;
+import com.maksim.problemService.exception.ConflictException;
 import com.maksim.problemService.exception.ResourceNotFoundException;
 import com.maksim.problemService.exception.ValidationException;
 import com.maksim.problemService.repository.ContestRepository;
+import com.maksim.problemService.repository.ContestUserRepository;
 import com.maksim.problemService.repository.ProblemRepository;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
@@ -35,7 +38,9 @@ public class ContestService {
 
     private final ProblemMapper problemMapper;
 
-    public List<ProblemSignature> getAllProblemSignatures(Integer contestId) {
+    private final ContestUserRepository cuRepository;
+
+    public List<ProblemSignatureResponseDto> getAllProblemSignatures(Integer contestId) {
         var contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new ResourceNotFoundException("No contest found with id " + contestId));
         return contest.getProblems().stream().map(problemMapper::toProblemSignature).toList();
@@ -47,22 +52,22 @@ public class ContestService {
     }
 
 
-    public Page<ContestSignatureDto> getPublicContests(Integer page, Integer pageSize) {
-        Page<ContestSignatureDto> dto = contestRepository.getAll(PageRequest.of(page - 1, pageSize));
+    public Page<ContestSignatureResponseDto> getPublicContests(Integer page, Integer pageSize) {
+        Page<ContestSignatureResponseDto> dto = contestRepository.getAll(PageRequest.of(page - 1, pageSize));
         setHandles(dto.getContent());
         return dto;
     }
 
 
-    public Page<ContestSignatureDto> getUserContests(int userId, Integer page, Integer pageSize) {
-        Page<ContestSignatureDto> dtoList = contestRepository.getUserContests(userId, PageRequest.of(page - 1, pageSize));
+    public Page<ContestSignatureResponseDto> getUserContests(int userId, Integer page, Integer pageSize) {
+        Page<ContestSignatureResponseDto> dtoList = contestRepository.getUserContests(userId, PageRequest.of(page - 1, pageSize));
         setHandles(dtoList.getContent());
         return dtoList;
     }
 
-    private void setHandles(List<ContestSignatureDto> contests) {
+    private void setHandles(List<ContestSignatureResponseDto> contests) {
         List<Integer> authorIds = contests.stream()
-                .map(ContestSignatureDto::getAuthorId)
+                .map(ContestSignatureResponseDto::getAuthorId)
                 .distinct()
                 .toList();
         Map<Integer, String> handles = authServiceClient.getUsersHandles(authorIds);
@@ -72,7 +77,6 @@ public class ContestService {
 
     public int createContest(CreateContestDto dto, int userId) {
         List<Integer> distinctProblemsId = dto.getProblemsId().stream().distinct().toList();
-        // пересекаем то что хочет юзер добавить в контест и то, что он может добавить
         List<Problem> userProblemIntersection = contestRepository.getAuthorProblemsList(userId, distinctProblemsId);
 
         if (userProblemIntersection.size() != distinctProblemsId.size()) {
@@ -100,5 +104,19 @@ public class ContestService {
     public ProblemConstraints getConstraints(Integer contestId, Integer problemId) {
         return contestRepository.getProblemConstraints(contestId, problemId)
                 .orElseThrow(() -> new ResourceNotFoundException("No problem found with id " + problemId));
+    }
+
+    public void registerUser(Integer contestId, Integer userId) {
+        if (!contestRepository.existsById(contestId))
+            throw new ResourceNotFoundException("There is no contest with id " + contestId);
+
+        var cuDb = cuRepository.findById_ContestIdAndId_UserId(contestId, userId);
+
+        if (cuDb.isPresent())
+            throw new ConflictException("User already registered");
+
+        ContestUser cu = new ContestUser();
+        cu.setId(new ContestUserId(userId, contestId));
+        cuRepository.save(cu);
     }
 }

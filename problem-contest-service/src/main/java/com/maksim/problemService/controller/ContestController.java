@@ -1,17 +1,16 @@
 package com.maksim.problemService.controller;
 
-import com.maksim.problemService.dto.contest.ContestSignatureDto;
+import com.maksim.problemService.dto.contest.ContestSignatureResponseDto;
 import com.maksim.problemService.dto.contest.CreateContestDto;
-import com.maksim.problemService.dto.problem.ProblemSignature;
+import com.maksim.problemService.dto.problem.ProblemSignatureResponseDto;
 import com.maksim.problemService.entity.Problem;
 import com.maksim.problemService.entity.ProblemConstraints;
 import com.maksim.problemService.exception.ErrorResponse;
 import com.maksim.problemService.service.ContestService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.AllArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,10 +29,27 @@ public class ContestController {
         this.contestService = contestService;
     }
 
+    @PostMapping("/contest/{contestId}/contestants")
+    @Operation(summary = "Get contestants of contests")
+    public ResponseEntity<?> registerOnContest(@PathVariable Integer contestId,
+                                               @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("User is not authenticated"));
+        }
+        contestService.registerUser(contestId, userId);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/contest/{contestId}/contestants")
+    @Operation(summary = "Get contestants of contests")
+    public ResponseEntity<?> getContestantsList(@PathVariable Integer contestId) {
+        return ResponseEntity.ok(List.of("Vasya", "Dima"));
+    }
+
     @GetMapping("/contest/{contestId}/problems")
     @Operation(summary = "Get signatures of contest's problems")
     public ResponseEntity<Object> getSignatures(@PathVariable Integer contestId) {
-        List<ProblemSignature> constraints = contestService.getAllProblemSignatures(contestId);
+        List<ProblemSignatureResponseDto> constraints = contestService.getAllProblemSignatures(contestId);
         return ResponseEntity.ok(constraints);
     }
 
@@ -49,7 +65,7 @@ public class ContestController {
     @GetMapping("/contests")
     @Operation(summary = "Get page of contests")
     public ResponseEntity<Object> getAllPublicContests(@RequestParam(defaultValue = "1") Integer page, HttpServletRequest req) {
-        Page<ContestSignatureDto> pageResult = contestService.getPublicContests(page, PAGE_SIZE);
+        Page<ContestSignatureResponseDto> pageResult = contestService.getPublicContests(page, PAGE_SIZE);
         return ResponseEntity.ok(pageResult);
     }
 
@@ -60,7 +76,7 @@ public class ContestController {
         if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("User is not authenticated"));
         }
-        Page<ContestSignatureDto> list = contestService.getUserContests(userId, page, PAGE_SIZE);
+        Page<ContestSignatureResponseDto> list = contestService.getUserContests(userId, page, PAGE_SIZE);
         return ResponseEntity.ok(list);
     }
 
@@ -74,7 +90,7 @@ public class ContestController {
 
     @PostMapping("/contest/create")
     @Operation(summary = "Create new contest")
-    public ResponseEntity<Object> createContest(@ModelAttribute CreateContestDto dto,
+    public ResponseEntity<Object> createContest(@Valid @ModelAttribute CreateContestDto dto,
                                                 @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
         if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("User is not authenticated"));
