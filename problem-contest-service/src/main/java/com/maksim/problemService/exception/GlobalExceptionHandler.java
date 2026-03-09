@@ -41,7 +41,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
         // временно
-        return ResponseEntity.status(500).body(new ErrorResponse(ex.getMessage()));
+        throw new RuntimeException(ex);
+//        return ResponseEntity.status(500).body(new ErrorResponse(ex.getMessage()));
 //        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 //                .body(new ErrorResponse("Внутренняя ошибка сервера"));
     }

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Controller
 @RequestMapping("/api")
+@CrossOrigin
 public class StandingsController {
     private final StandingsService standingsService;
 

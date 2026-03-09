@@ -20,7 +20,7 @@ public class Problem {
     @Column(name = "creator_id")
     private Integer creatorId;
     @Column(name = "is_public")
-    private boolean isPublic;
+    private Boolean isPublic;
     @Column(name = "title")
     private String title;
     @Column(name = "statement")

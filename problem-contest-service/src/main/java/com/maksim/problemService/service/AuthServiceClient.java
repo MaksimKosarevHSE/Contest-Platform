@@ -24,7 +24,7 @@ public class AuthServiceClient {
     private String authServiceUrl;
 
     Map<Integer, String> getUsersHandles(List<Integer> ids) {
-        String url = authServiceUrl + "/users/handles?ids=" +
+        String url = authServiceUrl + "/api/users/handles?ids=" +
                 ids.stream().map(String::valueOf).collect(Collectors.joining(","));
         ResponseEntity<Map<Integer, String>> response = restTemplate
                 .exchange(url, HttpMethod.GET, null, new ParameterizedTypeReference<>() {
@@ -33,7 +33,7 @@ public class AuthServiceClient {
     }
 
     String getUserHandle(Integer id) {
-        String url = authServiceUrl + "/users/" + id + "/handle";
+        String url = authServiceUrl + "/api/users/" + id + "/handle";
         return restTemplate.getForObject(url, String.class);
     }
 }

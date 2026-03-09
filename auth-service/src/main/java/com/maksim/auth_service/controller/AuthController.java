@@ -10,13 +10,11 @@ import com.maksim.auth_service.service.UserService;
 import com.maksim.auth_service.service.JwtService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin
 public class AuthController {
     private final JwtService jwtService;
 
@@ -53,8 +51,10 @@ public class AuthController {
     public ResponseEntity<Object> validate(@RequestBody ValidateRequest validateRequest) {
         var response = jwtService.validate(validateRequest.getToken());
         if (response == null) {
+            System.out.println("HI");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        System.out.println(response.getId());
         return ResponseEntity.ok(response);
     }
 

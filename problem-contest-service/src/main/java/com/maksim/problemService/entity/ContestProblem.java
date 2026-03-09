@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 public class ContestProblem {
     @EmbeddedId
-    private ContestProblemId id;
+    private ContestProblemId id = new ContestProblemId();
 
     @ManyToOne
     @MapsId("contestId")

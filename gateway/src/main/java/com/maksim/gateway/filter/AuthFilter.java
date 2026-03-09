@@ -7,10 +7,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.MediaType;
+import org.springframework.http.*;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
@@ -41,8 +38,11 @@ public class AuthFilter implements GlobalFilter, Ordered {
                     headers.remove("X-User-Handle");
                 })
                 .build();
+
+
         String path = request.getURI().getPath();
 
+        System.out.println("INPUT");
 
         if (openEndpoints.stream().anyMatch(path::startsWith)) {
             return chain.filter(exchange);
@@ -52,6 +52,7 @@ public class AuthFilter implements GlobalFilter, Ordered {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return chain.filter(exchange);
         }
+        System.out.println("HAS BEARER");
 
         String token = authHeader.substring(7);
 
@@ -64,9 +65,11 @@ public class AuthFilter implements GlobalFilter, Ordered {
                     ServerWebExchange mutatedExchange = exchange.mutate()
                             .request(mutatedRequest)
                             .build();
+                    System.out.println("NICE");
                     return chain.filter(mutatedExchange);
                 })
                 .onErrorResume(e -> {
+                    e.printStackTrace();
                     return onError(exchange);
                 });
     }
@@ -99,6 +102,6 @@ public class AuthFilter implements GlobalFilter, Ordered {
 
     @Override
     public int getOrder() {
-        return -1;
+        return 10000;
     }
 }

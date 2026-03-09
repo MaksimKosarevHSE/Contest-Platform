@@ -19,7 +19,7 @@ public class CreateContestDto {
     private String title;
 
     @Schema(description = "Публичный ли контест", example = "true")
-    private boolean isPublic;
+    private Boolean isPublic;
 
     @NotNull(message = "Время начала обязательно")
     @Future(message = "Время начала должно быть в будущем")

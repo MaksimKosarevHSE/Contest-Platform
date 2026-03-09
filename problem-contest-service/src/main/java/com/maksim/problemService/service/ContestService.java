@@ -5,10 +5,7 @@ import com.maksim.problemService.dto.contest.CreateContestDto;
 import com.maksim.problemService.dto.mapper.ContestMapper;
 import com.maksim.problemService.dto.mapper.ProblemMapper;
 import com.maksim.problemService.dto.problem.ProblemSignatureResponseDto;
-import com.maksim.problemService.entity.Contest;
-import com.maksim.problemService.entity.ContestUser;
-import com.maksim.problemService.entity.Problem;
-import com.maksim.problemService.entity.ProblemConstraints;
+import com.maksim.problemService.entity.*;
 import com.maksim.problemService.entity.keys.ContestUserId;
 import com.maksim.problemService.exception.ConflictException;
 import com.maksim.problemService.exception.ResourceNotFoundException;
@@ -95,8 +92,17 @@ public class ContestService {
         dto.setProblemsId(distinctProblemsId);
 
         Contest contest = contestMapper.toEntity(dto);
-        contest.setAuthorId(userId);
+        // доп внедрение id Задач
+        contest.setProblems(distinctProblemsId.stream()
+                .map(problemId -> {
+                    Problem problem = problemRepository.getReferenceById(problemId);
+                    ContestProblem cp = new ContestProblem();
+                    cp.setContest(contest);
+                    cp.setProblem(problem);
+                    return cp;
+                }).toList());
 
+        contest.setAuthorId(userId);
         return contestRepository.save(contest).getId();
     }
 
@@ -117,6 +123,7 @@ public class ContestService {
 
         ContestUser cu = new ContestUser();
         cu.setId(new ContestUserId(userId, contestId));
+        cu.setContest(contestRepository.getReferenceById(contestId));
         cuRepository.save(cu);
     }
 }

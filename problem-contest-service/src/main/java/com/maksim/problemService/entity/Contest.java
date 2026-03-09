@@ -18,16 +18,16 @@ public class Contest {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     @Column(name = "id")
-    private int id;
+    private Integer id;
     @Column(name = "title")
     private String title;
     @Column(name = "author_id")
-    private int authorId;
+    private Integer authorId;
     @Column(name = "start_time")
     private LocalDateTime startTime;
     @Column(name = "end_time")
     private LocalDateTime endTime;
-    @OneToMany(mappedBy = "contest")
+    @OneToMany(mappedBy = "contest", cascade = CascadeType.PERSIST)
     private List<ContestProblem> problems;
 
     public List<Problem> getProblems(){

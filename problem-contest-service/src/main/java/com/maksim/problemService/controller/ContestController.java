@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@CrossOrigin
+//@CrossOrigin
 @RequestMapping("/api")
 public class ContestController {
     private final ContestService contestService;
@@ -30,7 +30,7 @@ public class ContestController {
     }
 
     @PostMapping("/contest/{contestId}/contestants")
-    @Operation(summary = "Get contestants of contests")
+    @Operation(summary = "Register on contest")
     public ResponseEntity<?> registerOnContest(@PathVariable Integer contestId,
                                                @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
         if (userId == null) {

@@ -8,6 +8,7 @@ services:
       - "8080:8080"
     environment:
       AUTH_SERVICE_URL: http://auth-service:8003
+      PROBLEM_SERVICE_URL: http://problem-service:8000
       SERVER_PORT: 8080
     networks:
       - external
@@ -24,6 +25,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/postgres
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: root
+    ports:
+      - "8003:8003"
     networks:
       - external
     depends_on:
@@ -41,6 +44,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: root
       JUDGING_SERVICE_URL: http://judging-service:8002
       AUTH_SERVICE_URL: http://auth-service:8003
+    ports:
+      - "8000:8000"
     networks:
       - external
     depends_on:

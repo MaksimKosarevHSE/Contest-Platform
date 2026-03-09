@@ -47,11 +47,13 @@ public class ProblemValidator {
         try {
             inputFileNames = problem.getInputTestCases().stream()
                     .map(MultipartFile::getOriginalFilename).sorted().toList();
-            outputFileNames = problem.getInputTestCases().stream()
+            outputFileNames = problem.getOutputTestCases().stream()
                     .map(MultipartFile::getOriginalFilename).sorted().toList();
         } catch (Exception ex) {
             throw ex;
         }
+        System.out.println(inputFileNames);
+        System.out.println(outputFileNames);
 
         for (int i = 1; i <= num; i++) {
             String inFile = i + ".in";
@@ -62,7 +64,7 @@ public class ProblemValidator {
             if (pos1 < 0)
                 throw new ValidationException("Missing file with name " + inFile + ". Input files must be numbered named from 1.in to " + num + ".out");
             if (pos2 < 0)
-                throw new ValidationException("Missing file with name " + inFile + ". Output files must be numbered named from 1.out to " + num + ".out");
+                throw new ValidationException("Missing file with name " + outFile + ". Output files must be numbered named from 1.out to " + num + ".out");
 
             if (inputFiles.get(pos1) == null || outputFiles.get(pos2) == null) {
                 throw new RuntimeException("Unexpected error");
