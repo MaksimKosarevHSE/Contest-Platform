@@ -4,17 +4,16 @@ import com.maksim.submissionAcceptorService.enums.ProgrammingLanguage;
 import com.maksim.submissionAcceptorService.enums.Status;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "submissions")
-@Getter
-@Setter
+@Data
+@AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class Submission {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
@@ -53,15 +52,7 @@ public class Submission {
     @Column(name = "test_num")
     private int testNum;
 
-    public Submission(int userId, int problemId, Integer contestId, LocalDateTime time, String source, ProgrammingLanguage programmingLanguage, Status status, int executionTime, int usedMemory, int testNum) {
-        this.userId = userId;
-        this.problemId = problemId;
-        this.time = time;
-        this.source = source;
-        this.programmingLanguage = programmingLanguage;
-        this.status = status;
-        this.executionTime = executionTime;
-        this.usedMemory = usedMemory;
-        this.testNum = testNum;
-    }
+    @Column(name = "checker_message")
+    private String checkerMessage;
+
 }

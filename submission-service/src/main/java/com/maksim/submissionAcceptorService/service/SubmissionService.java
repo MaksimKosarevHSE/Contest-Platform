@@ -1,13 +1,17 @@
 package com.maksim.submissionAcceptorService.service;
 
 import com.maksim.submissionAcceptorService.dto.*;
+import com.maksim.submissionAcceptorService.dto.mapper.SubmissionMapper;
 import com.maksim.submissionAcceptorService.enums.Status;
 import com.maksim.submissionAcceptorService.entity.Submission;
 import com.maksim.submissionAcceptorService.event.SolutionJudgedEvent;
 import com.maksim.submissionAcceptorService.event.SolutionSubmittedEvent;
 import com.maksim.submissionAcceptorService.event.StandingsUpdateEvent;
+import com.maksim.submissionAcceptorService.exception.ResourceNotFoundException;
+import com.maksim.submissionAcceptorService.exception.ValidationException;
 import com.maksim.submissionAcceptorService.repository.SubmissionRepository;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,51 +33,78 @@ import java.util.concurrent.ExecutionException;
 @Service
 @Transactional
 @Slf4j
+@RequiredArgsConstructor
 public class SubmissionService {
     @Value("${problem.service.url}")
     private String PROBLEM_SERVICE_URL;
 
     @Value("${solution.submitted.event.topic}")
-    private String TOPIC_NAME;
+    private String solutionSubmittedTopicName;
+
+    @Value("${standings.update.event.topic}")
+    private String standingsUpdateTopicName;
 
     private KafkaTemplate<String, Object> kafkaTemplate;
 
     private SubmissionRepository submissionRepository;
+    
+    private AuthServiceClient authServiceClient;
 
-    private RestTemplate restTemplate;
+    private ProblemServiceClient problemServiceClient;
 
-    private int PAGE_SIZE = 16;
+    private SubmissionMapper submissionMapper;
 
-    public SubmissionService(KafkaTemplate<String, Object> kafkaTemplate,
-                             SubmissionRepository submitSolutionRepository,
-                             RestTemplate rest) {
-        this.kafkaTemplate = kafkaTemplate;
-        this.submissionRepository = submitSolutionRepository;
-        this.restTemplate = rest;
-    }
-
-    public void validateContestSubmission(ProblemConstraintsResponseDto constraints, LocalDateTime submissionTime) {
-        if (submissionTime.isBefore(constraints.getContestStartTime()))
-            throw new RuntimeException("The contest has not started");
-        if (submissionTime.isAfter(constraints.getContestEndTime()))
-            throw new RuntimeException("The contest is finished");
-    }
+    private static int PAGE_SIZE = 16;
 
 
     public long submitSolution(int problemId, Integer contestId, int userId, CreateSubmissionDto solution) throws IOException, ExecutionException, InterruptedException {
         var submissionTime = LocalDateTime.now();
-        ProblemConstraintsResponseDto problem = getProblemConstraints(problemId, contestId);
-        if (problem == null)
-            throw new RuntimeException("No problem found with id " + problemId);
-        if (contestId != null) {
-            validateContestSubmission(problem, submissionTime);
-        }
+        ProblemConstraintsResponseDto constraints = problemServiceClient.getProblemConstraints(problemId, contestId);
 
+        boolean isUpsolving = false;
+        if (contestId != null) {
+            if (submissionTime.isBefore(constraints.getContestStartTime()))
+                throw new RuntimeException("The contest has not started");
+            if (submissionTime.isAfter(constraints.getContestEndTime()))
+                isUpsolving = true;
+        }
         String source = extractSource(solution);
-        Submission submission = new Submission(userId, problemId, contestId, submissionTime, source, solution.getLanguage(), Status.IN_QUEUE, 0, 0, 0);
+
+        Submission submission = Submission.builder()
+                .userId(userId)
+                .problemId(problemId)
+                .contestId(contestId)
+                .time(submissionTime)
+                .source(source)
+                .programmingLanguage(solution.getLanguage())
+                .status(Status.IN_QUEUE)
+                .isUpsolving(isUpsolving).build();
+
         submission = submissionRepository.save(submission);
-        sendSubmissionEvent(submission, problem, contestId);
+        sendSubmissionEvent(submission, constraints, contestId);
         return submission.getId();
+    }
+
+    private String extractSource(CreateSubmissionDto solution) throws IOException {
+        boolean hasSourceFile = solution.getSourceFile() != null;
+        boolean hasSourceCode = solution.getSourceCode() != null && !solution.getSourceCode().isBlank();
+        if (!hasSourceFile && !hasSourceCode)
+            throw new ValidationException("Source code was not provided");
+        if (hasSourceFile) {
+            return new String(solution.getSourceFile().getBytes());
+        }
+        return solution.getSourceCode();
+    }
+
+    public void sendSubmissionEvent(Submission s, ProblemConstraintsResponseDto p, Integer contestId) throws ExecutionException, InterruptedException {
+        var event = submissionMapper.toSolutionSubmittedEvent(s);
+        event.setCompilationTimeLimit(p.getCompileTimeLimit());
+        event.setTimeLimit(p.getTimeLimit());
+        event.setMemoryLimit(p.getMemoryLimit());
+        event.setContestId(contestId);
+        var record = new ProducerRecord<>(solutionSubmittedTopicName, UUID.randomUUID().toString(), (Object) event);
+        record.headers().add("event-id", UUID.randomUUID().toString().getBytes());
+        kafkaTemplate.send(record).get(); // убедились, что посылка действительно отправлена в кафку
     }
 
 
@@ -98,60 +129,21 @@ public class SubmissionService {
     }
 
 
-    private String extractSource(CreateSubmissionDto solution) throws IOException {
-        boolean hasSourceFile = solution.getSourceFile() != null;
-        boolean hasSourceCode = solution.getSourceCode() != null && !solution.getSourceCode().isBlank();
-        if (!hasSourceFile && !hasSourceCode)
-            throw new RuntimeException("Source code was not provided");
-        if (hasSourceFile) {
-            return new String(solution.getSourceFile().getBytes());
-        }
-        return solution.getSourceCode();
-    }
+    @Transactional
+    public void processJudgedSolution(SolutionJudgedEvent ev) {
+        Submission submission = submissionRepository.findById(ev.getSubmissionId()).
+                orElseThrow(() -> new ResourceNotFoundException("Can't process event")); // добавить анретраебл экспешпн
 
-
-    private ProblemConstraintsResponseDto getProblemConstraints(int problemId, Integer contestId) {
-        String address = MessageFormat.format("{0}/problem/{1}/constraints", PROBLEM_SERVICE_URL, problemId);
-        if (contestId != null)
-            address = MessageFormat.format("{0}/contest/{1}/problem/{2}/constraints", PROBLEM_SERVICE_URL, contestId, problemId);
-
-        ResponseEntity<ProblemConstraintsResponseDto> response = restTemplate.getForEntity(address,
-                ProblemConstraintsResponseDto.class, problemId);
-        if (response.getStatusCode() == HttpStatus.OK) {
-            return response.getBody();
-        }
-        return null;
-    }
-
-
-    public void sendSubmissionEvent(Submission s, ProblemConstraintsResponseDto p, Integer contestId) throws ExecutionException, InterruptedException {
-        var event = new SolutionSubmittedEvent(
-                s.getProblemId(),
-                contestId,
-                s.getUserId(),
-                s.getId(),
-                s.getSource(),
-                s.getProgrammingLanguage(),
-                p.getTimeLimit(),
-                p.getMemoryLimit(),
-                p.getCompileTimeLimit());
-
-        var record = new ProducerRecord<>(TOPIC_NAME, UUID.randomUUID().toString(), (Object) event);
-        record.headers().add("messageId", UUID.randomUUID().toString().getBytes());
-        var sendResult = kafkaTemplate.send(record).get();
-        log.error("Message has been sent to topic {} in partitions {}", TOPIC_NAME, sendResult.getRecordMetadata().partition());
-    }
-
-
-    public void saveVerdict(SolutionJudgedEvent ev) {
-        Submission submission = submissionRepository.findById(ev.getSubmissionId()).get();
         submission.setStatus(ev.getStatus());
         submission.setExecutionTime(ev.getExecutionTime());
         submission.setTestNum(ev.getTestNum());
         submission.setUsedMemory(ev.getMemory());
+        submission.setCheckerMessage(ev.getCheckerMessage());
+
+        submissionRepository.save(submission);
         if (submission.getContestId() != null && !submission.getIsUpsolving()) {
-            var event = new StandingsUpdateEvent(submission.getUserId(), submission.getContestId(), submission.getProblemId(), submission.getTime(), submission.getStatus());
-            kafkaTemplate.send("standings-update-event", event);
+            var event = submissionMapper.toStandingsUpdateEvent(submission);
+            kafkaTemplate.send(standingsUpdateTopicName, event);
         }
     }
 

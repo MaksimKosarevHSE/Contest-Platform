@@ -16,4 +16,5 @@ public class SolutionJudgedEvent {
     private int testNum;
     private int memory;
     private int executionTime;
+    private String checkerMessage;
 }
