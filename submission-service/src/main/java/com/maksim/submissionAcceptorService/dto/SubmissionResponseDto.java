@@ -2,6 +2,7 @@ package com.maksim.submissionAcceptorService.dto;
 
 import com.maksim.submissionAcceptorService.enums.ProgrammingLanguage;
 import com.maksim.submissionAcceptorService.enums.Status;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Schema(description = "Short information about submission")
 public class SubmissionResponseDto {
     private long id;
     private int userId;

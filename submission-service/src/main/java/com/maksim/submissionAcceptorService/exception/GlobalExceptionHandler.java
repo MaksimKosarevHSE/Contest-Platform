@@ -9,6 +9,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(UnauthorizedAccessException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorize(UnauthorizedAccessException ex){
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex) {
@@ -23,7 +29,7 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(ex.getMessage()));
     }
 
-    @ExceptionHandler(com.maksim.problemService.exception.ValidationException.class)
+    @ExceptionHandler(com.maksim.submissionAcceptorService.exception.ValidationException.class)
     public ResponseEntity<ErrorResponse> handleValidation(ValidationException ex) {
         return ResponseEntity.badRequest()
                 .body(new ErrorResponse(ex.getMessage()));
