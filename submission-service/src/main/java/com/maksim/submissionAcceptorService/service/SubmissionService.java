@@ -2,12 +2,14 @@ package com.maksim.submissionAcceptorService.service;
 
 import com.maksim.submissionAcceptorService.dto.*;
 import com.maksim.submissionAcceptorService.dto.mapper.SubmissionMapper;
+import com.maksim.submissionAcceptorService.enums.ProgrammingLanguage;
 import com.maksim.submissionAcceptorService.enums.Status;
 import com.maksim.submissionAcceptorService.entity.Submission;
 import com.maksim.submissionAcceptorService.event.SolutionJudgedEvent;
 import com.maksim.submissionAcceptorService.event.SolutionSubmittedEvent;
 import com.maksim.submissionAcceptorService.event.StandingsUpdateEvent;
 import com.maksim.submissionAcceptorService.exception.ResourceNotFoundException;
+import com.maksim.submissionAcceptorService.exception.UnauthorizedAccessException;
 import com.maksim.submissionAcceptorService.exception.ValidationException;
 import com.maksim.submissionAcceptorService.repository.SubmissionRepository;
 import jakarta.transaction.Transactional;
@@ -47,7 +49,7 @@ public class SubmissionService {
     private KafkaTemplate<String, Object> kafkaTemplate;
 
     private SubmissionRepository submissionRepository;
-    
+
     private AuthServiceClient authServiceClient;
 
     private ProblemServiceClient problemServiceClient;
@@ -107,28 +109,6 @@ public class SubmissionService {
         kafkaTemplate.send(record).get(); // убедились, что посылка действительно отправлена в кафку
     }
 
-
-    public Page<SubmissionResponseDto> getSuccessPracticeSubmissions(Integer problemId, Integer page) {
-        return submissionRepository.getSubmissionsByProblemIdAndStatus(problemId, null, Status.OK, PageRequest.of(page, PAGE_SIZE));
-    }
-
-
-    public Page<SubmissionResponseDto> getAllUserPracticeSubmissions(Integer userId, Integer contestId, Integer pageNum) {
-        return submissionRepository.getAllSubmissionsByUserId(userId, contestId, PageRequest.of(pageNum, PAGE_SIZE));
-    }
-
-
-    public Page<SubmissionResponseDto> getSubmissions(Integer userId, Integer problemId, Integer contestId, Integer pageNum) {
-        return submissionRepository.getSubmissionByUserIdAndProblemIdAndContestId(userId, problemId, contestId, PageRequest.of(pageNum, PAGE_SIZE));
-    }
-
-    public SubmissionDetailsResponseDto getSubmissionDetails(Long submissionId, int userId) {
-        // TODO проверить есть ли у пользователя права на просмотр
-        var submission = submissionRepository.findById(submissionId).orElseThrow(() -> new RuntimeException("No submission found with id " + submissionId));
-        return new ObjectMapper().convertValue(submission, SubmissionDetailsResponseDto.class);
-    }
-
-
     @Transactional
     public void processJudgedSolution(SolutionJudgedEvent ev) {
         Submission submission = submissionRepository.findById(ev.getSubmissionId()).
@@ -148,4 +128,19 @@ public class SubmissionService {
     }
 
 
+    public SubmissionDetailsResponseDto getSubmissionDetails(Long submissionId, Integer contestId, int userId) {
+        var submission = submissionRepository.findByIdAndContestId(submissionId, contestId)
+                .orElseThrow(() -> new ResourceNotFoundException("No submission found"));
+
+        if (userId != submission.getUserId())
+            throw new UnauthorizedAccessException("You can't get access to someone else's contest submission details");
+
+        return submissionMapper.toSubmissionDetailsResponseDto(submission);
+    }
+
+
+    public Page<SubmissionResponseDto> getSubmissions(Integer contestId, Integer problemId, Integer userId, Status status, ProgrammingLanguage language, Integer page) {
+        return submissionRepository.findFiltered(contestId, problemId, userId, status, language, PageRequest.of(page - 1, PAGE_SIZE))
+                .map(submissionMapper::toSubmissionResponseDto);
+    }
 }

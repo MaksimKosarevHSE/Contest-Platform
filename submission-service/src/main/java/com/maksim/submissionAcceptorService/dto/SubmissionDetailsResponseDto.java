@@ -14,7 +14,7 @@ public class SubmissionDetailsResponseDto {
     private int userId;
     private int problemId;
     private Integer contestId;
-    private boolean sentWhileContest;
+    private boolean isUpsolving;
     private LocalDateTime time;
     private String source;
     private ProgrammingLanguage programmingLanguage;
@@ -24,5 +24,5 @@ public class SubmissionDetailsResponseDto {
     private int testNum;
 //    private String input;
 //    private String output; временно для простоты убрал
-    private String checkerComment;
+    private String checkerMessage;
 }

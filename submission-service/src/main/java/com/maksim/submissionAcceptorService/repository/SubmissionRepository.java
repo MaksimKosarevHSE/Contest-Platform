@@ -1,40 +1,34 @@
 package com.maksim.submissionAcceptorService.repository;
 
 import com.maksim.submissionAcceptorService.dto.SubmissionResponseDto;
+import com.maksim.submissionAcceptorService.enums.ProgrammingLanguage;
 import com.maksim.submissionAcceptorService.enums.Status;
 import com.maksim.submissionAcceptorService.entity.Submission;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.lang.ScopedValue;
 import java.util.List;
+import java.util.Optional;
 
 public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
-    @Query("select new com.maksim.submissionAcceptorService.dto.SubmissionResponseDto(p.id, p.userId, p.problemId, p.time, p.programmingLanguage, p.status, p.executionTime, p.usedMemory) from Submission p " +
-            "where p.contestId = :contestId " +
-            "order by p.id desc")
-    List<SubmissionResponseDto> customFindAll(Integer contestId);
+    @Query("SELECT s FROM Submission s " +
+            "WHERE (:userId IS NULL OR s.userId = :userId) " +
+            "AND (:problemId IS NULL OR s.problemId = :problemId) " +
+            "AND (:contestId IS NULL OR s.contestId = :contestId) " +
+            "AND (:status IS NULL OR s.status = :status) " +
+            "AND (:language IS NULL OR s.programmingLanguage = :language) " +
+            "ORDER BY s.id DESC")
+    Page<Submission> findFiltered(@Param("contestId") Integer contestId,
+                                  @Param("problemId") Integer problemId,
+                                  @Param("userId") Integer userId,
+                                  @Param("status") Status status,
+                                  @Param("language") ProgrammingLanguage language,
+                                  Pageable pageable);
 
-    @Query("select new com.maksim.submissionAcceptorService.dto.SubmissionResponseDto(p.id, p.userId, p.problemId, p.time, p.programmingLanguage, p.status, p.executionTime, p.usedMemory) " +
-            "from Submission p" +
-            " where p.problemId= :problemId and p.userId = :userId and p.contestId= :contestId" +
-            " order by p.id desc")
-    Page<SubmissionResponseDto> getSubmissionByProblemIdAndUserId(Integer problemId, Integer userId, Integer contestId, Pageable pageable);
-
-    @Query("select new com.maksim.submissionAcceptorService.dto.SubmissionResponseDto(p.id, p.userId, p.problemId, p.time, p.programmingLanguage, p.status, p.executionTime, p.usedMemory) " +
-            "from Submission p" +
-            " where p.problemId= :problemId and p.status = :status and p.contestId= :contestId" +
-            " order by p.id desc")
-    Page<SubmissionResponseDto> getSubmissionsByProblemIdAndStatus(Integer problemId, Integer contestId, Status status, Pageable pageable);
-
-    @Query("select new com.maksim.submissionAcceptorService.dto.SubmissionResponseDto(p.id, p.userId, p.problemId, p.time, p.programmingLanguage, p.status, p.executionTime, p.usedMemory) " +
-            "from Submission p" +
-            " where p.userId = :userId and p.contestId= :contestId" +
-            " order by p.id desc")
-    Page<SubmissionResponseDto> getAllSubmissionsByUserId(Integer userId, Integer contestId, Pageable pageable);
-
-    Page<SubmissionResponseDto> getSubmissionByUserIdAndProblemIdAndContestId(Integer userId, Integer problemId, Integer contestId, Pageable pageable);
-
+    Optional<Submission> findByIdAndContestId(long id, Integer contestId);
 }

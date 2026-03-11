@@ -1,5 +1,7 @@
 package com.maksim.submissionAcceptorService.dto.mapper;
 
+import com.maksim.submissionAcceptorService.dto.SubmissionDetailsResponseDto;
+import com.maksim.submissionAcceptorService.dto.SubmissionResponseDto;
 import com.maksim.submissionAcceptorService.entity.Submission;
 import com.maksim.submissionAcceptorService.event.SolutionSubmittedEvent;
 import com.maksim.submissionAcceptorService.event.StandingsUpdateEvent;
@@ -9,6 +11,7 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface SubmissionMapper {
+
 
     @Mapping(target = "submissionId", source = "id")
     @Mapping(target = "language", source = "programmingLanguage")
@@ -20,4 +23,8 @@ public interface SubmissionMapper {
 
     @Mapping(target = "submissionTime", source = "time")
     StandingsUpdateEvent toStandingsUpdateEvent(Submission s);
+
+    SubmissionDetailsResponseDto toSubmissionDetailsResponseDto(Submission s);
+
+    SubmissionResponseDto toSubmissionResponseDto(Submission s);
 }
