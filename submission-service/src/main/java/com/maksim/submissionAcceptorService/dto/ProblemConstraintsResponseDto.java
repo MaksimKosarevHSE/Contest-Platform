@@ -2,18 +2,11 @@ package com.maksim.submissionAcceptorService.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
-@NoArgsConstructor
-@AllArgsConstructor
-@Getter
-@Setter
-@Schema(description = "Problem constraints and contest info (if present)")
+@Data
 public class ProblemConstraintsResponseDto {
     private int id;
     private double compileTimeLimit;
