@@ -128,11 +128,11 @@ public class SubmissionService {
     }
 
 
-    public SubmissionDetailsResponseDto getSubmissionDetails(Long submissionId, Integer contestId, int userId) {
+    public SubmissionDetailsResponseDto getSubmissionDetails(Long submissionId, Integer contestId, Integer userId) {
         var submission = submissionRepository.findByIdAndContestId(submissionId, contestId)
                 .orElseThrow(() -> new ResourceNotFoundException("No submission found"));
 
-        if (userId != submission.getUserId())
+        if (contestId != null && userId != submission.getUserId())
             throw new UnauthorizedAccessException("You can't get access to someone else's contest submission details");
 
         return submissionMapper.toSubmissionDetailsResponseDto(submission);
