@@ -80,6 +80,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: root
       REDIS_PORT: 6379
       REDIS_URL: redis
+      JUDGE_WORKDIR: /judge
     networks:
       - external
     depends_on:

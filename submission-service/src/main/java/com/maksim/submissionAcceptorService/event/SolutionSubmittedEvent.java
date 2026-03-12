@@ -5,10 +5,8 @@ import jakarta.annotation.Nullable;
 import lombok.*;
 
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+//@AllArgsConstructor
+@Data
 @Builder
 public class SolutionSubmittedEvent {
     private Integer problemId;

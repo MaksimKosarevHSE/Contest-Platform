@@ -8,10 +8,10 @@ import java.time.LocalDateTime;
 
 @Data
 public class ProblemConstraintsResponseDto {
-    private int id;
-    private double compileTimeLimit;
-    private double timeLimit;
-    private double memoryLimit;
+    private Integer id;
+    private Integer compileTimeLimit;
+    private Integer timeLimit;
+    private Integer memoryLimit;
     // if problem is included in contest
     private Integer contestId;
     private LocalDateTime contestStartTime;

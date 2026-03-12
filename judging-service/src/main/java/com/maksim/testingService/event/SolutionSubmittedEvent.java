@@ -5,10 +5,8 @@ import com.maksim.testingService.enums.ProgrammingLanguage;
 import lombok.*;
 
 
-@AllArgsConstructor
-@Getter
-@Setter
-@NoArgsConstructor
+
+@Data
 @ToString
 public class SolutionSubmittedEvent {
     private Integer problemId;

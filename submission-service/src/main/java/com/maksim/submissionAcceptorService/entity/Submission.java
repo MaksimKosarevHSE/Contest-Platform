@@ -17,13 +17,13 @@ import java.time.LocalDateTime;
 public class Submission {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    private long id;
+    private Long id;
 
     @Column(name = "user_id")
-    private int userId;
+    private Integer userId;
 
     @Column(name = "problem_id")
-    private int problemId;
+    private Integer problemId;
 
     @Column(name = "contest_id")
     private Integer contestId;
@@ -44,13 +44,13 @@ public class Submission {
     private Status status;
 
     @Column(name = "execution_time")
-    private int executionTime;
+    private Integer executionTime;
 
     @Column(name = "used_memory")
-    private int usedMemory;
+    private Integer usedMemory;
 
     @Column(name = "test_num")
-    private int testNum;
+    private Integer testNum;
 
     @Column(name = "checker_message")
     private String checkerMessage;

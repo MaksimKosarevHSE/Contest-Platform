@@ -1,14 +1,14 @@
 package com.maksim.testingService.entity;
 
 import jakarta.persistence.*;
+import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@NoArgsConstructor
-@Getter
-@Setter
+@Data
 @Entity
+@NoArgsConstructor
 @Table(name = "processed_events")
 public class ProcessedEvent {
     @Id

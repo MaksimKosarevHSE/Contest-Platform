@@ -6,8 +6,6 @@ import com.maksim.submissionAcceptorService.enums.ProgrammingLanguage;
 import com.maksim.submissionAcceptorService.enums.Status;
 import com.maksim.submissionAcceptorService.entity.Submission;
 import com.maksim.submissionAcceptorService.event.SolutionJudgedEvent;
-import com.maksim.submissionAcceptorService.event.SolutionSubmittedEvent;
-import com.maksim.submissionAcceptorService.event.StandingsUpdateEvent;
 import com.maksim.submissionAcceptorService.exception.ResourceNotFoundException;
 import com.maksim.submissionAcceptorService.exception.UnauthorizedAccessException;
 import com.maksim.submissionAcceptorService.exception.ValidationException;
@@ -19,15 +17,10 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.text.MessageFormat;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -37,8 +30,6 @@ import java.util.concurrent.ExecutionException;
 @Slf4j
 @RequiredArgsConstructor
 public class SubmissionService {
-    @Value("${problem.service.url}")
-    private String PROBLEM_SERVICE_URL;
 
     @Value("${solution.submitted.event.topic}")
     private String solutionSubmittedTopicName;
@@ -106,7 +97,7 @@ public class SubmissionService {
         event.setContestId(contestId);
         var record = new ProducerRecord<>(solutionSubmittedTopicName, UUID.randomUUID().toString(), (Object) event);
         record.headers().add("event-id", UUID.randomUUID().toString().getBytes());
-        kafkaTemplate.send(record).get(); // убедились, что посылка действительно отправлена в кафку
+        kafkaTemplate.send(record).get();
     }
 
     @Transactional
@@ -134,7 +125,7 @@ public class SubmissionService {
 
         if (contestId != null && userId != submission.getUserId())
             throw new UnauthorizedAccessException("You can't get access to someone else's contest submission details");
-
+        // аналогично. проверить на редис.
         return submissionMapper.toSubmissionDetailsResponseDto(submission);
     }
 
@@ -142,5 +133,11 @@ public class SubmissionService {
     public Page<SubmissionResponseDto> getSubmissions(Integer contestId, Integer problemId, Integer userId, Status status, ProgrammingLanguage language, Integer page) {
         return submissionRepository.findFiltered(contestId, problemId, userId, status, language, PageRequest.of(page - 1, PAGE_SIZE))
                 .map(submissionMapper::toSubmissionResponseDto);
+        // если статус IN QUEUE, то смотрим есть ли в редисе обнова для этой посылки
+    }
+
+    public void updateSolutionStatus(SolutionJudgedEvent solutionEvent) {
+        // пушим в редис
+        // пушим в сокет
     }
 }

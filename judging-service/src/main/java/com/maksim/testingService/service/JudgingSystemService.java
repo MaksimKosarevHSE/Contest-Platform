@@ -1,87 +1,85 @@
 package com.maksim.testingService.service;
 
 import com.maksim.testingService.enums.CheckerType;
-import com.maksim.testingService.event.JudgingProgress;
 import com.maksim.testingService.enums.ProgrammingLanguage;
 import com.maksim.testingService.enums.Status;
-import com.maksim.testingService.event.SolutionJudgedEvent;
+import com.maksim.testingService.event.TestCaseJudgedEvent;
 import com.maksim.testingService.event.SolutionSubmittedEvent;
 import com.maksim.testingService.exception.*;
 import com.maksim.testingService.service.model.TestCasesMetadata;
 import com.maksim.testingService.service.model.VerdictInfo;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
 
 import java.io.*;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 
 @Service
 @Slf4j
-@Getter
-@Setter
 public class JudgingSystemService {
-    private final String PATH_TO_TESTS = "/judge/tests";
-    private final String PATH_TO_SESSION_STORE = "/judge/sessions";
+    @Value("${judging.workdir}")
+    private String workDir;
+
+    @Value("${judging.tests.dir}")
+    private String testDir;
+
+    @Value("${judging.sessions.dir}")
+    private String sessionDir;
+
+    @Value("${test.case.judged.event.topic}")
+    private String testCaseJudgedEventTopic;
+
     private final String SOURCE_FILE_NAME = "main";
-    private final int JUDGING_TIME_LIMIT = 10;
+
+    private final int JUDGING_TIME_LIMIT = 10000; // ms
+
     private final String CONTESTANT_OUT_FILE_NAME = "output.out";
+
     private final String CHECKER_OUT_FILE_NAME = "checker_.out";
-    private final Duration TTL = Duration.ofMinutes(5);
 
-    private Random rand = new Random();
+    private final KafkaTemplate<Integer, Object> kafkaTemplate;
 
-    @Value("${solution.judged.event.topic}")
-    private String SUBMISSION_JUDGED_EVENT_TOPIC;
-
-    private SimpMessagingTemplate msgTemplate;
-    private ReactiveRedisTemplate<String, JudgingProgress> redisTemplate;
-    private KafkaTemplate<Integer, SolutionJudgedEvent> kafkaTemplate;
-
-    public JudgingSystemService(@Qualifier("asRedis") ReactiveRedisTemplate<String, JudgingProgress> redisTemplate, SimpMessagingTemplate tmp, KafkaTemplate<Integer, SolutionJudgedEvent> kafkaTemplate) {
-        this.msgTemplate = tmp;
-        this.redisTemplate = redisTemplate;
+    public JudgingSystemService(KafkaTemplate<Integer, Object> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
     }
 
-    //    @Autowired
-//    private KafkaTemplate<>
-    public void processSubmission(SolutionSubmittedEvent submissionMeta, int workerId) throws IOException, InterruptedException, ExecutionException {
+
+    // Я знаю, что всю тестирующую логику в идеале нужно разбить по классам (runner, compiler, checker, tests)
+    // Сейчас файл очень перегружен, в ближайшем обновлении после всех фиксов разобью эту логику
+
+    public void processSubmission(SolutionSubmittedEvent submissionMeta)
+            throws IOException, InterruptedException, ExecutionException {
+
         var verdictInfo = new VerdictInfo();
+
         try {
-            log.debug("Worker {} started to test submission {}", workerId, submissionMeta.getSubmissionId());
-            Path sessionDir = Files.createTempDirectory(Path.of(PATH_TO_SESSION_STORE), null);
+            log.debug("Worker {} started to test submission {}", 1, submissionMeta.getSubmissionId());
+            Path sessionDir = Files.createTempDirectory(Path.of(this.sessionDir), null);
             log.info("PATH: {}", sessionDir.toAbsolutePath().toString());
             Path sourceFile = Files.createFile(sessionDir.resolve(SOURCE_FILE_NAME + submissionMeta.getLanguage().sourceSuffix));
             Files.writeString(sourceFile, submissionMeta.getSource());
+
             Path compiledFile = sourceFile;
             if (submissionMeta.getLanguage().needCompilation) {
                 log.debug("Start compilation stage of submission {}", submissionMeta.getSubmissionId());
                 compiledFile = compileSolution(sessionDir, sourceFile, submissionMeta, verdictInfo);
                 log.debug("Compilation stage of submission {} passed success", submissionMeta.getSubmissionId());
             }
+
             log.debug("Start testing stage of submission {} ", submissionMeta.getSubmissionId());
             testSolution(compiledFile, sessionDir, submissionMeta, verdictInfo);
             log.debug("Submission {} was tested successfully with verdict {}", submissionMeta.getSubmissionId(), verdictInfo);
+
         } catch (InterruptedException | IOException ex) {
             log.error(ex.getMessage());
             throw ex;
@@ -89,58 +87,60 @@ public class JudgingSystemService {
             log.debug("BadVerdict of submission {}. {}", submissionMeta.getSubmissionId(), ex.getMessage());
         }
 
-        kafkaTemplate.send(SUBMISSION_JUDGED_EVENT_TOPIC, new SolutionJudgedEvent(submissionMeta.getSubmissionId(), verdictInfo.getStatus(), verdictInfo.getNumOfFailureTest(), verdictInfo.getUsedMemory(), verdictInfo.getExecutionTime())).get();
-        sendJudgingProgress(submissionMeta.getSubmissionId(), verdictInfo.getStatus(), verdictInfo.getNumOfFailureTest(), verdictInfo.getExecutionTime(), verdictInfo.getUsedMemory());
+        var event = TestCaseJudgedEvent.builder()
+                .submissionId(submissionMeta.getSubmissionId())
+                .status(verdictInfo.getStatus())
+                .testNum((verdictInfo.getTestNum()))
+                .executionTime(verdictInfo.getExecutionTime())
+                .memory(verdictInfo.getUsedMemory())
+                .checkerMessage(verdictInfo.getCheckerMessage()).build();
 
-        // пока временное DTO в бд (только статус с данными тестирования)
-        // в кафку в сервис посылок -> (в бд, redis) -> нотификэйшн сервис
+
+        kafkaTemplate.send(testCaseJudgedEventTopic, event).get();
     }
 
 
+    private void sendProgress(Long submissionId, Integer testNum) {
+        var event = TestCaseJudgedEvent.builder()
+                .submissionId(submissionId)
+                .testNum(testNum)
+                .status(Status.TESTING).build();
+        kafkaTemplate.send(testCaseJudgedEventTopic, event);
+    }
+
     private void testSolution(Path compiledFile, Path sessionDir, SolutionSubmittedEvent submissionMeta, VerdictInfo verdictInfo) throws IOException, InterruptedException {
-        Path judgeTestDir = Path.of(PATH_TO_TESTS).resolve("problem_" + submissionMeta.getProblemId());
+        Path judgeTestDir = Path.of(testDir).resolve("problem_" + submissionMeta.getProblemId());
         TestCasesMetadata meta = new ObjectMapper().readValue(judgeTestDir.resolve("meta.json"), TestCasesMetadata.class);
         int testsCnt = meta.getTestCount();
         Path contestantOutFile = sessionDir.resolve(CONTESTANT_OUT_FILE_NAME);
-//        Path checkerOutFile = sessionDir.resolve(CHECKER_OUT_FILE_NAME);
 
         for (int i = 1; i <= testsCnt; i++) {
-            sendJudgingProgress(submissionMeta.getSubmissionId(), Status.TESTING, i, -1, -1); // async
-//            log.debug("START " + i);
-//            System.out.println("START " + i);
-//            Files.createFile(contestantOutFile);
-//            Files.createFile(checkerOutFile);
+            sendProgress(submissionMeta.getSubmissionId(), i);
 
             ProcessBuilder pb = new ProcessBuilder();
             pb.command(submissionMeta.getLanguage().getRunCommand(compiledFile));
             pb.redirectInput(judgeTestDir.resolve(i + ".in").toFile());
-
             pb.redirectOutput(contestantOutFile.toFile());
 
             Process process = pb.start();
-            ReadableByteChannel channel = Channels.newChannel(process.getInputStream());
-//              var is = process.getInputStream();
-
 
             long start = System.currentTimeMillis();
-//           while(is.read() != -1 && (System.currentTimeMillis() - start) <= 1000 ){
-//
-//           }
-
-            boolean successEnd = process.waitFor(submissionMeta.getTimeLimit(), TimeUnit.SECONDS);
+            boolean successEnd = process.waitFor(submissionMeta.getTimeLimit(), TimeUnit.MILLISECONDS);
             int duration = (int) (System.currentTimeMillis() - start);
-            verdictInfo.setUsedMemory(123);
+
+            verdictInfo.setUsedMemory(1);
             verdictInfo.setExecutionTime(duration);
 
             if (!successEnd) {
                 process.destroyForcibly();
-                verdictInfo.setNumOfFailureTest(i);
+                verdictInfo.setTestNum(i);
                 verdictInfo.setStatus(Status.TIME_LIMIT);
                 throw new BadVerdictException("Time limit exceeded");
             }
+
             int exitCode = process.exitValue();
             if (exitCode != 0) {
-                verdictInfo.setNumOfFailureTest(i);
+                verdictInfo.setTestNum(i);
                 verdictInfo.setStatus(Status.RUNTIME_ERROR);
                 throw new BadVerdictException("Runtime error");
             }
@@ -156,16 +156,9 @@ public class JudgingSystemService {
                         answerFile.toAbsolutePath().toString(),
                         verdictInfo, i);
             }
-//            System.out.println("END " + i);
-//            System.out.println();
         }
 
         verdictInfo.setStatus(Status.OK);
-    }
-
-    public void sendJudgingProgress(long submissionId, Status status, int testNum, int executionTime, int memory) {
-        msgTemplate.convertAndSend("/topic/msg", new JudgingProgress(submissionId, status, testNum, LocalDateTime.now(), executionTime, memory));
-//        redisTemplate.opsForValue().set("sub:" + String.valueOf(submissionId), event, TTL).doOnError((error -> log.error("Error when sent progress in Redis"))).doOnSuccess(result-> System.out.println("SUCCESS")).subscribe();
     }
 
 
@@ -188,7 +181,7 @@ public class JudgingSystemService {
                 break;
             case 1:
                 verdictInfo.setStatus(Status.WRONG_ANSWER);
-                verdictInfo.setNumOfFailureTest(testNum);
+                verdictInfo.setTestNum(testNum);
                 throw new BadVerdictException(new String(Files.readAllBytes(Path.of(checkerOutFile))));
             default:
                 log.debug("Checker RE error");
@@ -196,16 +189,17 @@ public class JudgingSystemService {
         }
     }
 
+
     private Path compileSolution(Path sessionDir, Path sourcePath, SolutionSubmittedEvent submission, VerdictInfo verdictInfo) throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder();
-        Path outputPath = sessionDir.resolve("compilator.out");
+        Path outputPath = sessionDir.resolve("compilator.out"); // output for compiler errors
         pb.redirectOutput(outputPath.toFile());
         pb.redirectErrorStream(true);
         String[] compileCommand = submission.getLanguage().getCompileCommand(sourcePath);
         pb.command(compileCommand);
 
         Process process = pb.start();
-        boolean successEnd = process.waitFor(submission.getCompilationTimeLimit(), TimeUnit.SECONDS);
+        boolean successEnd = process.waitFor(submission.getCompilationTimeLimit(), TimeUnit.MILLISECONDS);
         if (!successEnd) {
             process.destroyForcibly();
             verdictInfo.setStatus(Status.COMPILE_ERROR);
@@ -235,7 +229,7 @@ public class JudgingSystemService {
                     break;
                 }
                 if (line1 == null || line2 == null) {
-                    verdictInfo.setNumOfFailureTest(testNum);
+                    verdictInfo.setTestNum(testNum);
                     verdictInfo.setStatus(Status.WRONG_ANSWER);
                     String msg;
                     if (line1 == null)
@@ -249,7 +243,7 @@ public class JudgingSystemService {
                 line2 = line2.replaceAll("(\\n|\\s)", "");
 
                 if (!line1.equals(line2)) {
-                    verdictInfo.setNumOfFailureTest(testNum);
+                    verdictInfo.setTestNum(testNum);
                     verdictInfo.setStatus(Status.WRONG_ANSWER);
                     throw new BadVerdictException("The line " + lineCnt + " is different from the judge's solution");
                 }

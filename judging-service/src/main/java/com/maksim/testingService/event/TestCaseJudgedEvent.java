@@ -5,11 +5,11 @@ import lombok.*;
 
 @Data
 @Builder
-public class SolutionJudgedEvent {
-    private long submissionId;
+public class TestCaseJudgedEvent {
+    private Long submissionId;
     private Status status;
-    private int testNum;
-    private int memory;
-    private int executionTime;
+    private Integer testNum;
+    private Integer memory;
+    private Integer executionTime;
     private String checkerMessage;
 }

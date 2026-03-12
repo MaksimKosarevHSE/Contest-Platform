@@ -28,8 +28,8 @@ public class KafkaConfig {
     @Value("${consumer.group_id}")
     String groupId;
 
-    @Value("${solution.judged.event.topic}")
-    String solutionJudgedTopic;
+    @Value("${test.case.judged.event.topic}")
+    String testCaseJudgedEventTopicName;
 
     @Bean
     ConsumerFactory<Integer, SolutionSubmittedEvent> consumerFactory(){
@@ -39,6 +39,7 @@ public class KafkaConfig {
         props.put(JacksonJsonDeserializer.TRUSTED_PACKAGES, "*");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JacksonJsonDeserializer.class);
+
         props.put(JacksonJsonDeserializer.USE_TYPE_INFO_HEADERS, false);
         return new DefaultKafkaConsumerFactory<>(props, new IntegerDeserializer(), new JacksonJsonDeserializer<>(SolutionSubmittedEvent.class));
     }
@@ -52,7 +53,7 @@ public class KafkaConfig {
 
     @Bean
     NewTopic createTopic(){
-        return TopicBuilder.name(solutionJudgedTopic)
+        return TopicBuilder.name(testCaseJudgedEventTopicName)
                 .partitions(3)
                 .build();
     }

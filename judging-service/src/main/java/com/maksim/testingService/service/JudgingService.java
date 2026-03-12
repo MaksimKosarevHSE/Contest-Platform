@@ -6,6 +6,7 @@ import com.maksim.testingService.enums.CheckerType;
 import com.maksim.testingService.exception.JuryCompilationException;
 import com.maksim.testingService.service.model.TestCasesMetadata;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
@@ -17,19 +18,19 @@ import java.util.concurrent.TimeUnit;
 @Service
 @Slf4j
 public class JudgingService {
-    private final String TEST_DIR_PATH = "/judge/tests";
-    private final int JURY_COMPILATION_TIME_LIMIT = 10;
+    @Value("${judging.tests.dir}")
+    private String testDir;
+
+    private final int JURY_COMPILATION_TIME_LIMIT = 10000;
 
     public void saveTests(SaveTestCasesDto dto) throws IOException, InterruptedException, JuryCompilationException {
-        Path problemDir = Path.of(TEST_DIR_PATH).resolve(Path.of("problem_" + dto.getProblemId()));
+        Path problemDir = Path.of(testDir).resolve(Path.of("problem_" + dto.getProblemId()));
         try {
-            System.out.println(Files.createDirectories(problemDir).toAbsolutePath());
-            System.out.println(dto.getTestFilesContent());
             for (int i = 0; i < dto.getCountOfTestCases() * 2; i++) {
                 Path filePath = Files.createFile(problemDir.resolve(dto.getTestFilesNames().get(i)));
                 Files.write(filePath, dto.getTestFilesContent().get(i));
             }
-            var metaData = new TestCasesMetadata(dto.getProblemId(), dto.getCountOfTestCases(), dto.getCheckerType(), dto.getCheckerLanguage(), null );
+            var metaData = TestCasesMetadata.from(dto);
 
             if (dto.getCheckerType() == CheckerType.CUSTOM_CHECKER) {
                 Path checkerFile = Files.createFile(problemDir.resolve("checker" + dto.getCheckerLanguage().sourceSuffix));
@@ -54,7 +55,6 @@ public class JudgingService {
             Files.writeString(metaFile, metaDataJson);
 
         } catch (IOException | InterruptedException | JuryCompilationException ex) {
-            ex.printStackTrace();
             log.error("Exception occur while saving test files {}", ex.getMessage());
             try {
                 Files.deleteIfExists(problemDir);
