@@ -1,21 +1,17 @@
 package com.maksim.testingService.event;
 
 import com.maksim.testingService.enums.Status;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Data
+@Builder
 public class SolutionJudgedEvent {
     private long submissionId;
     private Status status;
     private int testNum;
     private int memory;
     private int executionTime;
+    private String checkerMessage;
 }

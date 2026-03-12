@@ -11,12 +11,13 @@ import lombok.*;
 @NoArgsConstructor
 @ToString
 public class SolutionSubmittedEvent {
-    private int problemId;
-    private int userId;
-    private int submissionId;
+    private Integer problemId;
+    private Integer contestId;
+    private Integer userId;
+    private Long submissionId;
     private String source;
     private ProgrammingLanguage language;
-    private int timeLimit;
-    private int memoryLimit;
-    private int compilationTimeLimit;
+    private Integer timeLimit;
+    private Integer memoryLimit;
+    private Integer compilationTimeLimit;
 }
