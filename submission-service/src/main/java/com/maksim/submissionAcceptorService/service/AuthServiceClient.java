@@ -2,6 +2,7 @@ package com.maksim.submissionAcceptorService.service;
 
 import com.maksim.submissionAcceptorService.exception.ResourceNotFoundException;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 @Service
 @AllArgsConstructor
 @NoArgsConstructor
+@Data
 public class AuthServiceClient {
     private final RestTemplate restTemplate = new RestTemplate();
 

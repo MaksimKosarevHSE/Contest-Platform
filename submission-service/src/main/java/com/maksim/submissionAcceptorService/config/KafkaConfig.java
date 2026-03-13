@@ -39,6 +39,7 @@ public class KafkaConfig {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JacksonJsonDeserializer.class);
         props.put(JacksonJsonDeserializer.USE_TYPE_INFO_HEADERS, false);
+        props.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_commited" );
         return new DefaultKafkaConsumerFactory<>(props, new IntegerDeserializer(), new JacksonJsonDeserializer<>(SolutionJudgedEvent.class));
     }
 

@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Service
 @Slf4j
@@ -50,32 +52,36 @@ public class SubmissionService {
 
 
     @Transactional
-    public long submitSolution(int problemId, Integer contestId, int userId, CreateSubmissionDto solution) throws IOException, ExecutionException, InterruptedException {
-        var submissionTime = LocalDateTime.now();
-        ProblemConstraintsResponseDto constraints = problemServiceClient.getProblemConstraints(problemId, contestId);
+    public long submitSolution(int problemId, Integer contestId, int userId, CreateSubmissionDto solution) {
+        try {
+            var submissionTime = LocalDateTime.now();
+            ProblemConstraintsResponseDto constraints = problemServiceClient.getProblemConstraints(problemId, contestId);
 
-        boolean isUpsolving = false;
-        if (contestId != null) {
-            if (submissionTime.isBefore(constraints.getContestStartTime()))
-                throw new RuntimeException("The contest has not started");
-            if (submissionTime.isAfter(constraints.getContestEndTime()))
-                isUpsolving = true;
+            boolean isUpsolving = false;
+            if (contestId != null) {
+                if (submissionTime.isBefore(constraints.getContestStartTime()))
+                    throw new RuntimeException("The contest has not started");
+                if (submissionTime.isAfter(constraints.getContestEndTime()))
+                    isUpsolving = true;
+            }
+            String source = extractSource(solution);
+
+            Submission submission = Submission.builder()
+                    .userId(userId)
+                    .problemId(problemId)
+                    .contestId(contestId)
+                    .time(submissionTime)
+                    .source(source)
+                    .programmingLanguage(solution.getLanguage())
+                    .status(Status.IN_QUEUE)
+                    .isUpsolving(isUpsolving).build();
+
+            submission = submissionRepository.save(submission);
+            sendSubmissionEvent(submission, constraints, contestId);
+            return submission.getId();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        String source = extractSource(solution);
-
-        Submission submission = Submission.builder()
-                .userId(userId)
-                .problemId(problemId)
-                .contestId(contestId)
-                .time(submissionTime)
-                .source(source)
-                .programmingLanguage(solution.getLanguage())
-                .status(Status.IN_QUEUE)
-                .isUpsolving(isUpsolving).build();
-
-        submission = submissionRepository.save(submission);
-        sendSubmissionEvent(submission, constraints, contestId);
-        return submission.getId();
     }
 
     private String extractSource(CreateSubmissionDto solution) throws IOException {
@@ -89,15 +95,19 @@ public class SubmissionService {
         return solution.getSourceCode();
     }
 
-    public void sendSubmissionEvent(Submission s, ProblemConstraintsResponseDto p, Integer contestId) throws ExecutionException, InterruptedException {
-        var event = submissionMapper.toSolutionSubmittedEvent(s);
-        event.setCompilationTimeLimit(p.getCompileTimeLimit());
-        event.setTimeLimit(p.getTimeLimit());
-        event.setMemoryLimit(p.getMemoryLimit());
-        event.setContestId(contestId);
-        var record = new ProducerRecord<>(solutionSubmittedTopicName, UUID.randomUUID().toString(), (Object) event);
-        record.headers().add("event-id", UUID.randomUUID().toString().getBytes());
-        kafkaTemplate.send(record).get();
+    private void sendSubmissionEvent(Submission s, ProblemConstraintsResponseDto p, Integer contestId) {
+        try {
+            var event = submissionMapper.toSolutionSubmittedEvent(s);
+            event.setCompilationTimeLimit(p.getCompileTimeLimit());
+            event.setTimeLimit(p.getTimeLimit());
+            event.setMemoryLimit(p.getMemoryLimit());
+            event.setContestId(contestId);
+            var record = new ProducerRecord<>(solutionSubmittedTopicName, UUID.randomUUID().toString(), (Object) event);
+            record.headers().add("event-id", UUID.randomUUID().toString().getBytes());
+            kafkaTemplate.send(record).get(5, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Transactional
@@ -105,7 +115,7 @@ public class SubmissionService {
         Submission submission = submissionRepository.findById(ev.getSubmissionId()).
                 orElseThrow(() -> new ResourceNotFoundException("Can't process event"));
 
-        if (ev.getStatus() == submission.getStatus()){
+        if (ev.getStatus() == submission.getStatus()) {
             return; // идемпотентность
         }
 
@@ -118,7 +128,11 @@ public class SubmissionService {
         submissionRepository.save(submission);
         if (submission.getContestId() != null && !submission.getIsUpsolving()) {
             var event = submissionMapper.toStandingsUpdateEvent(submission);
-            kafkaTemplate.send(standingsUpdateTopicName, event);
+            try {
+                kafkaTemplate.send(standingsUpdateTopicName, event).get(5, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -133,7 +147,6 @@ public class SubmissionService {
         // аналогично. проверить на редис.
         return submissionMapper.toSubmissionDetailsResponseDto(submission);
     }
-
 
 
     // без транзакции
