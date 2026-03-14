@@ -50,7 +50,7 @@ public class ContestSubmissionController {
                                             @PathVariable @Parameter(description = "Problem id") Integer problemId,
                                             @ModelAttribute @Parameter(description = "Solution data") CreateSubmissionDto solution,
                                             @RequestHeader(value = "X-User-Id", required = false) @Parameter(description = "Service header") Integer userId
-    ) throws IOException, ExecutionException, InterruptedException {
+    ) {
         if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("User is not authenticated"));
         }
@@ -81,6 +81,14 @@ public class ContestSubmissionController {
     }
 
     @GetMapping("/contest/{contestId}/submission/{submissionId}/details")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Details about submission in contest",
+                    content = @Content(schema = @Schema(implementation = SubmissionResponseDto.class))),
+            @ApiResponse(responseCode = "400",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<Object> getSubmissionDetails(@PathVariable @Parameter(description = "Submission ID") Long submissionId,
                                                        @PathVariable @Parameter(description = "Contest ID") Integer contestId,
                                                        @RequestHeader(value = "X-User-Id", required = false) @Parameter(description = "Service header") Integer userId) {

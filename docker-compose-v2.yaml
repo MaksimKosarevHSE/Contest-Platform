@@ -63,6 +63,11 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/postgres
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: root
+      JUDGING_SERVICE_URL: http://judging-service:8002
+      REDIS_PORT: 6379
+      REDIS_URL: redis
+    ports:
+      - "8001:8001"
     networks:
       - external
     depends_on:
@@ -78,8 +83,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/postgres
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: root
-      REDIS_PORT: 6379
-      REDIS_URL: redis
       JUDGE_WORKDIR: /judge
     networks:
       - external
@@ -89,6 +92,8 @@ services:
       - redis
     ports:
       - "8002:8002"
+    volumes:
+      - /d/judge:/judge:rw
 
 
   kafka:

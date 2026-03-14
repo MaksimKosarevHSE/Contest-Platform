@@ -1,6 +1,8 @@
 package com.maksim.submissionAcceptorService.event;
 
 import com.maksim.submissionAcceptorService.enums.Status;
+import com.maksim.submissionAcceptorService.service.JudgingProgressCacheService;
+import com.maksim.submissionAcceptorService.service.JudgingProgressNotificationService;
 import com.maksim.submissionAcceptorService.service.SubmissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -12,12 +14,21 @@ import org.springframework.stereotype.Service;
 public class EventListener {
     private final SubmissionService service;
 
-    @KafkaListener(topics = "test-case-judged-event-topic", containerFactory = "factory1")
-    public void handle(@Payload SolutionJudgedEvent solutionEvent){
-        if (solutionEvent.getStatus() == Status.TESTING){
-            service.updateSolutionStatus(solutionEvent);
+    private final JudgingProgressNotificationService judgingProgressNotificationService;
+
+    private final JudgingProgressCacheService judgingProgressCacheService;
+
+    @KafkaListener(topics = "submission-jugding-progress-event-topic", containerFactory = "factory1")
+    public void handle(@Payload SubmissionJudgingProgressEvent solutionEvent) {
+
+        if (solutionEvent.getStatus() == Status.TESTING) {
+            System.out.println("KUKU");
+            // cache test num
+            judgingProgressCacheService.cacheTestNumAsync(solutionEvent.getSubmissionId(), solutionEvent.getTestNum());
         } else {
             service.processJudgedSolution(solutionEvent);
         }
+        // notify about submission status
+        judgingProgressNotificationService.notifyProgressAsync(solutionEvent);
     }
 }

@@ -5,12 +5,11 @@ import com.maksim.submissionAcceptorService.dto.mapper.SubmissionMapper;
 import com.maksim.submissionAcceptorService.enums.ProgrammingLanguage;
 import com.maksim.submissionAcceptorService.enums.Status;
 import com.maksim.submissionAcceptorService.entity.Submission;
-import com.maksim.submissionAcceptorService.event.SolutionJudgedEvent;
+import com.maksim.submissionAcceptorService.event.SubmissionJudgingProgressEvent;
 import com.maksim.submissionAcceptorService.exception.ResourceNotFoundException;
 import com.maksim.submissionAcceptorService.exception.UnauthorizedAccessException;
 import com.maksim.submissionAcceptorService.exception.ValidationException;
 import com.maksim.submissionAcceptorService.repository.SubmissionRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -19,9 +18,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -46,12 +48,17 @@ public class SubmissionService {
 
     private final ProblemServiceClient problemServiceClient;
 
+    private final JudgingProgressCacheService submissionProgressCacheService;
+
+    private final JudgingProgressNotificationService judgingProgressNotificationService;
+
     private final SubmissionMapper submissionMapper;
 
-    private static int PAGE_SIZE = 16;
+    private static final int PAGE_SIZE = 16;
 
+    private static final int KAFKA_TIMEOUT = 5;
 
-    @Transactional
+    @Transactional("transactionManager")
     public long submitSolution(int problemId, Integer contestId, int userId, CreateSubmissionDto solution) {
         try {
             var submissionTime = LocalDateTime.now();
@@ -104,14 +111,14 @@ public class SubmissionService {
             event.setContestId(contestId);
             var record = new ProducerRecord<>(solutionSubmittedTopicName, UUID.randomUUID().toString(), (Object) event);
             record.headers().add("event-id", UUID.randomUUID().toString().getBytes());
-            kafkaTemplate.send(record).get(5, TimeUnit.SECONDS);
+            kafkaTemplate.send(record).get(KAFKA_TIMEOUT, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             throw new RuntimeException(e);
         }
     }
 
-    @Transactional
-    public void processJudgedSolution(SolutionJudgedEvent ev) {
+    @Transactional("transactionManager")
+    public void processJudgedSolution(SubmissionJudgingProgressEvent ev) {
         Submission submission = submissionRepository.findById(ev.getSubmissionId()).
                 orElseThrow(() -> new ResourceNotFoundException("Can't process event"));
 
@@ -129,7 +136,7 @@ public class SubmissionService {
         if (submission.getContestId() != null && !submission.getIsUpsolving()) {
             var event = submissionMapper.toStandingsUpdateEvent(submission);
             try {
-                kafkaTemplate.send(standingsUpdateTopicName, event).get(5, TimeUnit.SECONDS);
+                kafkaTemplate.send(standingsUpdateTopicName, event).get(KAFKA_TIMEOUT, TimeUnit.SECONDS);
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 throw new RuntimeException(e);
             }
@@ -137,14 +144,12 @@ public class SubmissionService {
     }
 
 
-    // без транзакции
     public SubmissionDetailsResponseDto getSubmissionDetails(Long submissionId, Integer contestId, Integer userId) {
         var submission = submissionRepository.findByIdAndContestId(submissionId, contestId)
                 .orElseThrow(() -> new ResourceNotFoundException("No submission found"));
 
         if (contestId != null && userId != submission.getUserId())
             throw new UnauthorizedAccessException("You can't get access to someone else's contest submission details");
-        // аналогично. проверить на редис.
         return submissionMapper.toSubmissionDetailsResponseDto(submission);
     }
 
@@ -152,12 +157,14 @@ public class SubmissionService {
     // без транзакции
     public Page<SubmissionResponseDto> getSubmissions(Integer contestId, Integer problemId, Integer userId, Status status, ProgrammingLanguage language, Integer page) {
         return submissionRepository.findFiltered(contestId, problemId, userId, status, language, PageRequest.of(page - 1, PAGE_SIZE))
-                .map(submissionMapper::toSubmissionResponseDto);
-        // если статус IN QUEUE, то смотрим есть ли в редисе обнова для этой посылки
+                .map(this::wrapWithJudgingProgressTestNum);
     }
 
-    public void updateSolutionStatus(SolutionJudgedEvent solutionEvent) {
-        // пушим в редис
-        // пушим в сокет
+    private SubmissionResponseDto wrapWithJudgingProgressTestNum(Submission submission) {
+        SubmissionResponseDto response = submissionMapper.toSubmissionResponseDto(submission);
+        if (response.getStatus() == Status.IN_QUEUE)
+            response.setTestNum(submissionProgressCacheService.getCachedTestNum(submission.getId()).orElse(null));
+        return response;
     }
+
 }

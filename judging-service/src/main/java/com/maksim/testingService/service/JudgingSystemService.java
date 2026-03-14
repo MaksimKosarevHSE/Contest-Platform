@@ -84,6 +84,7 @@ public class JudgingSystemService {
             log.error(ex.getMessage());
             throw ex;
         } catch (BadVerdictException ex) {
+            verdictInfo.setCheckerMessage(ex.getMessage());
             log.debug("BadVerdict of submission {}. {}", submissionMeta.getSubmissionId(), ex.getMessage());
         }
 
@@ -95,7 +96,7 @@ public class JudgingSystemService {
                 .memory(verdictInfo.getUsedMemory())
                 .checkerMessage(verdictInfo.getCheckerMessage()).build();
 
-
+        System.out.println("ERES: " + event.getCheckerMessage());
         kafkaTemplate.send(testCaseJudgedEventTopic, event).get();
     }
 
@@ -106,6 +107,7 @@ public class JudgingSystemService {
                 .testNum(testNum)
                 .status(Status.TESTING).build();
         kafkaTemplate.send(testCaseJudgedEventTopic, event);
+        System.out.println("SEND");
     }
 
     private void testSolution(Path compiledFile, Path sessionDir, SolutionSubmittedEvent submissionMeta, VerdictInfo verdictInfo) throws IOException, InterruptedException {
@@ -116,7 +118,7 @@ public class JudgingSystemService {
 
         for (int i = 1; i <= testsCnt; i++) {
             sendProgress(submissionMeta.getSubmissionId(), i);
-
+//            log.debug("START TEST {}", i);
             ProcessBuilder pb = new ProcessBuilder();
             pb.command(submissionMeta.getLanguage().getRunCommand(compiledFile));
             pb.redirectInput(judgeTestDir.resolve(i + ".in").toFile());
@@ -209,6 +211,7 @@ public class JudgingSystemService {
         if (exitCode != 0) {
             String out = new String(Files.readAllBytes(outputPath));
             verdictInfo.setStatus(Status.COMPILE_ERROR);
+//            verdictInfo.setCheckerMessage(out);
             throw new BadVerdictException(out);
         }
 

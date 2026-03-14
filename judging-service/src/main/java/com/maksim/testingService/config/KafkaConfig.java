@@ -5,6 +5,7 @@ import com.maksim.testingService.event.SolutionSubmittedEvent;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,21 +33,20 @@ public class KafkaConfig {
     String testCaseJudgedEventTopicName;
 
     @Bean
-    ConsumerFactory<Integer, SolutionSubmittedEvent> consumerFactory(){
+    ConsumerFactory<String, SolutionSubmittedEvent> consumerFactory(){
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrap);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         props.put(JacksonJsonDeserializer.TRUSTED_PACKAGES, "*");
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class);
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JacksonJsonDeserializer.class);
-
+        props.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
         props.put(JacksonJsonDeserializer.USE_TYPE_INFO_HEADERS, false);
-        return new DefaultKafkaConsumerFactory<>(props, new IntegerDeserializer(), new JacksonJsonDeserializer<>(SolutionSubmittedEvent.class));
+        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new JacksonJsonDeserializer<>(SolutionSubmittedEvent.class));
     }
-
     @Bean("factory1")
-    public ConcurrentKafkaListenerContainerFactory<Integer, SolutionSubmittedEvent> concurrentKafkaListenerContainerFactory() {
-        var factory = new ConcurrentKafkaListenerContainerFactory<Integer, SolutionSubmittedEvent>();
+    public ConcurrentKafkaListenerContainerFactory<String, SolutionSubmittedEvent> concurrentKafkaListenerContainerFactory() {
+        var factory = new ConcurrentKafkaListenerContainerFactory<String, SolutionSubmittedEvent>();
         factory.setConsumerFactory(consumerFactory());
         return factory;
     }

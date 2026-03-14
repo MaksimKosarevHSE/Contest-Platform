@@ -1,7 +1,6 @@
 package com.maksim.submissionAcceptorService.dto;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.annotation.Nullable;
+
 import lombok.*;
 
 import java.time.LocalDateTime;

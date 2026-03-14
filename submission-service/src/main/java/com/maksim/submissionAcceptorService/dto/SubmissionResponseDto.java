@@ -28,6 +28,9 @@ public class SubmissionResponseDto {
     @Schema(description = "Verdict", example = "OK")
     private Status status;
 
+    @Schema(description = "The test number on which the current submission is being tested", example = "2")
+    private Integer testNum;
+
     @Schema(description = "Execution time (ms)", example = "150")
     private int executionTime;
 

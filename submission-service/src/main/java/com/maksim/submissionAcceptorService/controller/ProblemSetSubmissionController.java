@@ -53,8 +53,9 @@ public class ProblemSetSubmissionController {
     public ResponseEntity<?> submitSolution(@PathVariable @Parameter(description = "Problem's ID", example = "7") Integer problemId,
                                             @ModelAttribute @Parameter(description = "Solution data") CreateSubmissionDto solution,
                                             @RequestHeader(value = "X-User-Id", required = false) @Parameter(description = "Service header") Integer userId
-    ) throws IOException, ExecutionException, InterruptedException {
+    ) {
 
+        System.out.println(solution.getLanguage());
         if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("User is not authenticated"));
         }
@@ -85,13 +86,10 @@ public class ProblemSetSubmissionController {
 
 
     @GetMapping("/problemset/submission/{submissionId}/details")
-    @Operation(summary = "Get submission's details")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Details about submission",
-                    content = @Content(schema = @Schema(implementation = SubmissionDetailsResponseDto.class))),
+            @ApiResponse(responseCode = "200", description = "Details about submission in problem set",
+                    content = @Content(schema = @Schema(implementation = SubmissionResponseDto.class))),
             @ApiResponse(responseCode = "400",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "404",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
