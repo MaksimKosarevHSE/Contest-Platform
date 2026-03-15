@@ -90,7 +90,7 @@ public class ContestController {
 
     @PostMapping("/contest/create")
     @Operation(summary = "Create new contest")
-    public ResponseEntity<Object> createContest(@Valid @ModelAttribute CreateContestDto dto,
+    public ResponseEntity<Object> createContest(@Valid @RequestBody CreateContestDto dto,
                                                 @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
         if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("User is not authenticated"));

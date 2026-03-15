@@ -44,6 +44,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: root
       JUDGING_SERVICE_URL: http://judging-service:8002
       AUTH_SERVICE_URL: http://auth-service:8003
+      REDIS_PORT: 6379
+      REDIS_URL: redis
     ports:
       - "8000:8000"
     networks:
@@ -52,6 +54,7 @@ services:
       - kafka
       - db
       - redis
+    
 
   submission-service:
     build: ./submission-service

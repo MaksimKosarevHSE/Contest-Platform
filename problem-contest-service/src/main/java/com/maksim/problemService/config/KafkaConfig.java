@@ -1,6 +1,7 @@
 package com.maksim.problemService.config;
 
 import com.maksim.problemService.dto.problem.SendTestCasesToJudgeServiceDto;
+import com.maksim.problemService.event.ContestSubmissionWasTestedEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -23,7 +24,7 @@ public class KafkaConfig {
     private String KAFKA_BOOTSTRAP;
 
     @Bean
-    ConsumerFactory<Integer, SendTestCasesToJudgeServiceDto> consumerFactory() {
+    ConsumerFactory<String, ContestSubmissionWasTestedEvent> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID);
@@ -32,12 +33,12 @@ public class KafkaConfig {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JacksonJsonDeserializer.class);
         props.put(JacksonJsonDeserializer.USE_TYPE_INFO_HEADERS, false);
         props.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
-        return new DefaultKafkaConsumerFactory<>(props, new IntegerDeserializer(), new JacksonJsonDeserializer<>(SendTestCasesToJudgeServiceDto.class));
+        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new JacksonJsonDeserializer<>(ContestSubmissionWasTestedEvent.class));
     }
 
     @Bean("factory1")
-    public ConcurrentKafkaListenerContainerFactory<Integer, SendTestCasesToJudgeServiceDto> concurrentKafkaListenerContainerFactory() {
-        var factory = new ConcurrentKafkaListenerContainerFactory<Integer, SendTestCasesToJudgeServiceDto>();
+    public ConcurrentKafkaListenerContainerFactory<String, ContestSubmissionWasTestedEvent> concurrentKafkaListenerContainerFactory() {
+        var factory = new ConcurrentKafkaListenerContainerFactory<String, ContestSubmissionWasTestedEvent>();
         factory.setConsumerFactory(consumerFactory());
         return factory;
     }

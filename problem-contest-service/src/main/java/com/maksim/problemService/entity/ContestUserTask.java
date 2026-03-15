@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class ContestUserTask {
     @EmbeddedId
-    private ContestUserTaskId id;
+    private ContestUserTaskId id = new ContestUserTaskId();
 
     @ManyToOne
     @MapsId("contestId")
@@ -27,25 +27,21 @@ public class ContestUserTask {
     @JoinColumn(name = "task_id")
     private Problem problem;
 
-    private Boolean isSolved;
+    private boolean solved;
+
     private int attempts;
+
     private int score;
-//    private int fine;
+
     private LocalDateTime solutionTime;
 
     public ContestUserTask(ContestUserTaskId id) {
         this.id = id;
-        this.isSolved = false;
     }
 
-//    public void addFine(int x){
-//        fine += x;
-//    }
-
-    public void incAttempts(){
+    public void incAttempts() {
         attempts++;
     }
-
 
 
 }

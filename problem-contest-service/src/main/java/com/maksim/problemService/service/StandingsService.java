@@ -13,8 +13,11 @@ import com.maksim.problemService.exception.ResourceNotFoundException;
 import com.maksim.problemService.repository.ContestRepository;
 import com.maksim.problemService.repository.ContestUserRepository;
 import com.maksim.problemService.repository.ContestUserTaskRepository;
+import com.maksim.problemService.repository.ProblemRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
@@ -22,6 +25,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class StandingsService {
     private final String REDIS_LEADERBOARD_PREFIX = "contest:leaderboard:";
 
@@ -35,19 +39,11 @@ public class StandingsService {
 
     private final ContestUserTaskRepository cutRepository;
 
+    private final ProblemRepository problemRepository;
+
     private final ContestRepository contestRepository;
+
     private final ObjectMapper om;
-
-    private final ContestUserTaskRepository contestUserTaskRepository;
-
-    public StandingsService(StringRedisTemplate redisTemplate, ContestUserRepository cuRep, ContestUserTaskRepository cutRep, ObjectMapper om, ContestUserTaskRepository contestUserTaskRepository, ContestRepository contestRepo) {
-        this.redisTemplate = redisTemplate;
-        this.cutRepository = cutRep;
-        this.cuRepository = cuRep;
-        this.om = om;
-        this.contestRepository = contestRepo;
-        this.contestUserTaskRepository = contestUserTaskRepository;
-    }
 
     private String getLeaderboardKey(int contestId) {
         return REDIS_LEADERBOARD_PREFIX + contestId;
@@ -60,7 +56,7 @@ public class StandingsService {
     public List<UserProgressResponseDto> getLeaderboard(int contestId, int page, int pageSize) {
         page--;
         int start = pageSize * page;
-        int end = start + page - 1;
+        int end = start + pageSize - 1;
         String leaderboardKey = getLeaderboardKey(contestId);
 
         if (!redisTemplate.hasKey(leaderboardKey)) {
@@ -95,6 +91,7 @@ public class StandingsService {
         return userProgress;
     }
 
+    @Transactional
     public void handleUpdateEvent(ContestSubmissionWasTestedEvent event) {
         int userId = event.getUserId();
         int contestId = event.getContestId();
@@ -105,14 +102,19 @@ public class StandingsService {
         var cutKey = new ContestUserTaskId(contestId, userId, taskId);
 
         var cut = cutRepository.findById(cutKey)
-                .orElseGet(() -> new ContestUserTask(cutKey));
+                .orElseGet(() -> {
+                    ContestUserTask cut2 = new ContestUserTask(cutKey);
+                    cut2.setProblem(problemRepository.getReferenceById(taskId));
+                    cut2.setContest(contestRepository.getReferenceById(contestId));
+                    return cut2;
+                });
 
-        if (cut.getIsSolved()) return;
+        if (cut.isSolved()) return;
 
         cut.incAttempts();
 
         if (event.getStatus() == Status.OK) {
-            cut.setIsSolved(true);
+            cut.setSolved(true);
             int scoreForTask = 100;
             cut.setScore(scoreForTask);
             cut.setSolutionTime(event.getSubmissionTime());
@@ -135,7 +137,7 @@ public class StandingsService {
         redisTemplate.opsForZSet().add(leaderboardKey, String.valueOf(userId), contestUser.getTotalScore());
         String taskJson;
         try {
-            taskJson = om.writeValueAsString(contestUserTask);
+            taskJson = om.writeValueAsString(convertToDto(contestUserTask));
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
@@ -161,7 +163,7 @@ public class StandingsService {
             redisTemplate.opsForZSet().add(key, String.valueOf(userId), contestUser.getTotalScore());
 
             var contestUserTasks = userToTasks.getOrDefault(userId, new ArrayList<>())
-                    .stream().map(this::convert).toList();
+                    .stream().map(this::convertToDto).toList();
 
             var cu = new UserProgressResponseDto();
             cu.setUserId(userId);
@@ -196,15 +198,16 @@ public class StandingsService {
     //  прогресс без места и totalScore
     private UserProgressResponseDto getUserProgressDb(int contestId, int userId) {
         var cu = getContestUser(contestId, userId);
-        var cut = contestUserTaskRepository.findById_ContestIdAndId_UserId(contestId, userId);
-        var tasks = cut.stream().map(this::convert).toList();
+        var cut = cutRepository.findById_ContestIdAndId_UserId(contestId, userId);
+        var tasks = cut.stream().map(this::convertToDto).toList();
+        // null poiter
         return new UserProgressResponseDto(userId, 0, tasks, cu.getTotalScore());
     }
 
     // прогресс без места и totalScore
     private UserProgressResponseDto getUserProgressHash(int contestId, int userId) {
-        var mapa = redisTemplate.opsForHash().entries(getUserDetailsKey(userId, contestId));
-        if (mapa == null) return null;
+        var mapa = redisTemplate.opsForHash().entries(getUserDetailsKey(contestId, userId));
+        if (mapa.isEmpty()) return null;
 
         var up = new UserProgressResponseDto();
         up.setUserId(userId);
@@ -218,16 +221,16 @@ public class StandingsService {
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
-        Collections.sort(tasks, (t1, t2) -> t1.getTaskId() - t2.getTaskId());
+        tasks.sort(Comparator.comparingInt(TaskProgressResponseDto::getTaskId));
         up.setTaskProgress(tasks);
         return up;
     }
 
-    private TaskProgressResponseDto convert(ContestUserTask cut) {
+    private TaskProgressResponseDto convertToDto(ContestUserTask cut) {
         return new TaskProgressResponseDto(cut.getId().getTaskId(),
-                cut.getIsSolved(),
+                cut.isSolved(),
                 cut.getAttempts(),
-                (int) Duration.between(cut.getContest().getStartTime(), cut.getSolutionTime()).getSeconds(),
+                cut.getSolutionTime() != null ? (int) Duration.between(cut.getContest().getStartTime(), cut.getSolutionTime()).getSeconds() : 0,
                 cut.getScore()
         );
     }

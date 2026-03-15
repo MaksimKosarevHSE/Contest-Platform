@@ -66,8 +66,12 @@ public class SubmissionService {
 
             boolean isUpsolving = false;
             if (contestId != null) {
-                if (submissionTime.isBefore(constraints.getContestStartTime()))
+                if (submissionTime.isBefore(constraints.getContestStartTime())){
+                    System.out.println(submissionTime);
+                    System.out.println(constraints.getContestStartTime());
                     throw new RuntimeException("The contest has not started");
+                }
+
                 if (submissionTime.isAfter(constraints.getContestEndTime()))
                     isUpsolving = true;
             }

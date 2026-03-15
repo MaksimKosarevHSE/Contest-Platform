@@ -9,9 +9,9 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 public class ContestSubmissionWasTestedEvent {
-    private int userId;
-    private int contestId;
-    private int problemId;
+    private Integer userId;
+    private Integer contestId;
+    private Integer problemId;
     private LocalDateTime submissionTime;
     private Status status;
 }

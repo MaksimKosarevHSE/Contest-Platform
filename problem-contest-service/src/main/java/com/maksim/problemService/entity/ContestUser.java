@@ -21,9 +21,6 @@ public class ContestUser {
     @Column(name = "total_score")
     private int totalScore;
 
-    @Column(name = "task_solved")
-    private int taskSolved;
-
     public ContestUser(ContestUserId cuId) {
         this.id = cuId;
     }
@@ -32,8 +29,5 @@ public class ContestUser {
         totalScore += x;
     }
 
-    public void incrementTaskSolved() {
-        taskSolved++;
-    }
 
 }
