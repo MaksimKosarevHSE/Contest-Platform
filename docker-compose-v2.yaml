@@ -22,7 +22,7 @@ services:
       SERVER_PORT: 8003
       JWT_SECRET: kalsdjflasfjdljflaskdjflkasjdflkajsdlfkjasldkfjlaskdjflkasdjf'
       JWT_EXP_MINUTES: 100
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-auth-service:5432/postgres
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: root
     ports:
@@ -30,16 +30,16 @@ services:
     networks:
       - external
     depends_on:
-      - db
+      - db-auth-service
 
-  # listens to contest-submission-was-tested-event-topic
+
   problem-service:
     build: ./problem-contest-service
     container_name: problem-service
     environment:
       SERVER_PORT: 8000
       KAFKA_BOOTSTRAP: kafka:9092
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-problem-service:5432/postgres
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: root
       JUDGING_SERVICE_URL: http://judging-service:8002
@@ -52,7 +52,7 @@ services:
       - external
     depends_on:
       - kafka
-      - db
+      - db-problem-service
       - redis
     
 
@@ -63,7 +63,7 @@ services:
       SERVER_PORT: 8001
       PROBLEM_SERVICE_URL: http://problem-service:8000
       KAFKA_BOOTSTRAP: kafka:9092
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-submission-service:5432/postgres
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: root
       JUDGING_SERVICE_URL: http://judging-service:8002
@@ -75,7 +75,7 @@ services:
       - external
     depends_on:
       - kafka
-      - db
+      - db-submission-service
 
   judging-service:
     build: ./judging-service
@@ -83,7 +83,7 @@ services:
     environment:
       SERVER_PORT: 8002
       KAFKA_BOOTSTRAP: kafka:9092
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-judging-service:5432/postgres
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: root
       JUDGE_WORKDIR: /judge
@@ -91,7 +91,7 @@ services:
       - external
     depends_on:
       - kafka
-      - db
+      - db-judging-service
       - redis
     ports:
       - "8002:8002"
@@ -120,15 +120,40 @@ services:
       - external
 
 
-  db:
+  db-problem-service:
     image: postgres
     restart: always
-    ports:
-      - "5432:5432"
     environment:
       POSTGRES_PASSWORD: root
     networks:
       - external
+
+  db-submission-service:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: root
+    networks:
+      - external
+
+
+  db-judging-service:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: root
+    networks:
+      - external
+
+  db-auth-service:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: root
+    networks:
+      - external
+
+
 
   adminer:
     image: adminer
@@ -137,8 +162,6 @@ services:
       - "8070:8080"
     networks:
       - external
-    depends_on:
-      - db
 
   redis:
     image: redis:8.4

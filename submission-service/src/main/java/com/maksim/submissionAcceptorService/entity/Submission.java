@@ -5,6 +5,7 @@ import com.maksim.submissionAcceptorService.enums.Status;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Type;
 
 import java.time.LocalDateTime;
 
@@ -16,7 +17,7 @@ import java.time.LocalDateTime;
 @Builder
 public class Submission {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "user_id")
@@ -34,13 +35,15 @@ public class Submission {
     @Column(name = "time")
     private LocalDateTime time;
 
-    @Column(name = "source", length = 50_000)
+    @Column(name = "source")
     private String source;
 
     @Column(name = "language")
+    @Enumerated(EnumType.STRING)
     private ProgrammingLanguage programmingLanguage;
 
     @Column(name = "status")
+    @Enumerated(EnumType.STRING)
     private Status status;
 
     @Column(name = "execution_time")

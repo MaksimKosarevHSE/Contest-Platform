@@ -191,6 +191,7 @@ public class StandingsService {
 
 
     private ContestUser getContestUser(int contestId, int userId) {
+        System.out.println(contestId + " " + userId);
         return cuRepository.findById(new ContestUserId(userId, contestId)).
                 orElseThrow(() -> new ResourceNotFoundException("User not registered in this contest"));
     }

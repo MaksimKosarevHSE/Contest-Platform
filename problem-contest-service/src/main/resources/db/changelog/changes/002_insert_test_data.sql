@@ -83,22 +83,3 @@ VALUES
     (1, 1, 100),
     (1, 2, 200),
     (1, 3, 300);
-
-
--- Участники контеста
-
-INSERT INTO contest_user (contest_id, user_id, total_score)
-VALUES
-    (1, 1, 0),
-    (1, 2, 300);
-
-
--- ========== РЕЗУЛЬТАТЫ ПО ЗАДАЧАМ ==========
-
-
-INSERT INTO contest_user_task (contest_id, user_id, task_id, solved, attempts, score, solution_time)
-VALUES
-    (1, 1, 1, FALSE, 5, 0, NULL),
-    (1, 2, 1, TRUE, 3, 100, CURRENT_TIMESTAMP - INTERVAL '20 minutes'),
-    (1, 2, 2, TRUE, 1, 200, CURRENT_TIMESTAMP - INTERVAL '10 minutes');
-

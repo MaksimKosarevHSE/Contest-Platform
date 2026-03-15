@@ -16,7 +16,7 @@ import java.util.List;
 @AllArgsConstructor
 public class Contest {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Integer id;
     @Column(name = "title")

@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS problems (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     creator_id INTEGER NOT NULL,
     is_public BOOLEAN NOT NULL DEFAULT FALSE,
     title VARCHAR(255) NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS problems (
 
 
 CREATE TABLE IF NOT EXISTS contests (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     author_id INTEGER NOT NULL,
     start_time TIMESTAMP NOT NULL,
@@ -51,10 +51,6 @@ CREATE TABLE IF NOT EXISTS contest_user_task (
      solution_time TIMESTAMP,
      CONSTRAINT pk_contest_user_task PRIMARY KEY (contest_id, user_id, task_id)
     );
-
-
-CREATE SEQUENCE IF NOT EXISTS problems_seq START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE IF NOT EXISTS contests_seq START WITH 1 INCREMENT BY 1;
 
 
 

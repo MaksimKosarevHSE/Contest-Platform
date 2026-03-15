@@ -15,7 +15,7 @@ import java.util.Objects;
 @NoArgsConstructor
 public class Problem {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     @Column(name = "creator_id")
     private Integer creatorId;
