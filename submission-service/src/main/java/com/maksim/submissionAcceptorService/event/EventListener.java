@@ -22,7 +22,6 @@ public class EventListener {
     public void handle(@Payload SubmissionJudgingProgressEvent solutionEvent) {
 
         if (solutionEvent.getStatus() == Status.TESTING) {
-            System.out.println("KUKU");
             // cache test num
             judgingProgressCacheService.cacheTestNumAsync(solutionEvent.getSubmissionId(), solutionEvent.getTestNum());
         } else {

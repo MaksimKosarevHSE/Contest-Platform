@@ -3,6 +3,10 @@ package com.maksim.problemService.controller;
 import com.maksim.problemService.exception.ErrorResponse;
 import com.maksim.problemService.service.StandingsService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -23,20 +27,17 @@ public class StandingsController {
 
     @GetMapping("/contest/{contestId}/standings")
     @Operation(summary = "Get contest's standings")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Submission was accepted. Returns ID",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<Object> getStandings(@PathVariable Integer contestId,
                                                @RequestParam(name = "page", defaultValue = "1") Integer page) {
         var result = standingsService.getLeaderboard(contestId, page, PAGE_SIZE);
         return ResponseEntity.ok(result);
-    }
-
-
-    @GetMapping("/contest/{contestId}/standings/me")
-    @Operation(summary = "Get your position in contest with details")
-    public ResponseEntity<Object> getUserProgress(@PathVariable Integer contestId,
-                                                  @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("User is not authenticated"));
-        }
-        return ResponseEntity.ok(standingsService.getUserProgressDto(contestId, userId));
     }
 }

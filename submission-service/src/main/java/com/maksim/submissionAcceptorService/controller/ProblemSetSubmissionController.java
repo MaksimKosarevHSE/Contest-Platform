@@ -55,7 +55,6 @@ public class ProblemSetSubmissionController {
                                             @RequestHeader(value = "X-User-Id", required = false) @Parameter(description = "Service header") Integer userId
     ) {
 
-        System.out.println(solution.getLanguage());
         if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("User is not authenticated"));
         }

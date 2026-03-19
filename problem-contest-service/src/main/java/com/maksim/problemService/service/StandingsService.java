@@ -83,14 +83,6 @@ public class StandingsService {
     }
 
 
-    public UserProgressResponseDto getUserProgressDto(int contestId, int userId) {
-        var userProgress = getUserProgressHash(contestId, userId);
-        if (userProgress == null) {
-            userProgress = getUserProgressDb(contestId, userId);
-        }
-        return userProgress;
-    }
-
     @Transactional
     public void handleUpdateEvent(ContestSubmissionWasTestedEvent event) {
         int userId = event.getUserId();
@@ -201,7 +193,6 @@ public class StandingsService {
         var cu = getContestUser(contestId, userId);
         var cut = cutRepository.findById_ContestIdAndId_UserId(contestId, userId);
         var tasks = cut.stream().map(this::convertToDto).toList();
-        // null poiter
         return new UserProgressResponseDto(userId, 0, tasks, cu.getTotalScore());
     }
 

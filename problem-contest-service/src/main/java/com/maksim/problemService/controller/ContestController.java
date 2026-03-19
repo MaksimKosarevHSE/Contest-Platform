@@ -8,6 +8,10 @@ import com.maksim.problemService.entity.ProblemConstraints;
 import com.maksim.problemService.exception.ErrorResponse;
 import com.maksim.problemService.service.ContestService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -31,6 +35,17 @@ public class ContestController {
 
     @PostMapping("/contest/{contestId}/contestants")
     @Operation(summary = "Register on contest")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "400",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<?> registerOnContest(@PathVariable Integer contestId,
                                                @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
         if (userId == null) {
@@ -41,20 +56,48 @@ public class ContestController {
     }
 
     @GetMapping("/contest/{contestId}/contestants")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "List of contestants",
+                    content = @Content(schema = @Schema(implementation = List.class))),
+            @ApiResponse(responseCode = "404",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @Operation(summary = "Get contestants of contests")
     public ResponseEntity<?> getContestantsList(@PathVariable Integer contestId) {
         return ResponseEntity.ok(List.of("Vasya", "Dima"));
     }
 
+
+
+
+    // Защитить, если не Upsolving
     @GetMapping("/contest/{contestId}/problems")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "List of all problems signatures in contest",
+                    content = @Content(schema = @Schema(implementation = ProblemSignatureResponseDto.class))),
+            @ApiResponse(responseCode = "404",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @Operation(summary = "Get signatures of contest's problems")
     public ResponseEntity<Object> getSignatures(@PathVariable Integer contestId) {
         List<ProblemSignatureResponseDto> constraints = contestService.getAllProblemSignatures(contestId);
         return ResponseEntity.ok(constraints);
     }
 
-
+    // Защитить, если не Upsolving
     @GetMapping("/contest/{contestId}/problem/{problemId}")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Problem description in contest",
+                    content = @Content(schema = @Schema(implementation = Problem.class))),
+            @ApiResponse(responseCode = "404",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @Operation(summary = "Get full problem description")
     public ResponseEntity<Object> getProblemById(@PathVariable Integer contestId, @PathVariable Integer problemId) {
         Problem problem = contestService.getProblem(contestId, problemId);
@@ -63,32 +106,64 @@ public class ContestController {
 
 
     @GetMapping("/contests")
-    @Operation(summary = "Get page of contests")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "List of contests",
+                    content = @Content(schema = @Schema(implementation = ContestSignatureResponseDto.class))),
+            @ApiResponse(responseCode = "404",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @Operation(summary = "Get list of contests")
     public ResponseEntity<Object> getAllPublicContests(@RequestParam(defaultValue = "1") Integer page, HttpServletRequest req) {
         Page<ContestSignatureResponseDto> pageResult = contestService.getPublicContests(page, PAGE_SIZE);
         return ResponseEntity.ok(pageResult);
     }
 
-    @GetMapping("/contests/my")
-    @Operation(summary = "Get history of participation in contests")
-    public ResponseEntity<Object> getUserContests(@RequestParam(defaultValue = "1") Integer page,
-                                                  @RequestHeader(value = "X-User-Id", required = false) Integer userId) {
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("User is not authenticated"));
-        }
+    @GetMapping("/contests/participation/{userId}")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "List of contests in which user have participated or registered",
+                    content = @Content(schema = @Schema(implementation = ContestSignatureResponseDto.class))),
+            @ApiResponse(responseCode = "404",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @Operation(summary = "Get user's history of participation in contests")
+    public ResponseEntity<Object> getUserContests(@PathVariable Integer userId,
+                                                  @RequestParam(defaultValue = "1") Integer page) {
         Page<ContestSignatureResponseDto> list = contestService.getUserContests(userId, page, PAGE_SIZE);
         return ResponseEntity.ok(list);
     }
 
+    // Защитить, если не Upsolving
     @GetMapping("contest/{contestId}/problem/{problemId}/constraints")
-    @Operation(summary = "Get problem's runtime limit, memory limit, compile time limit")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Constraints of problem in contest",
+                    content = @Content(schema = @Schema(implementation = ProblemConstraints.class))),
+            @ApiResponse(responseCode = "404",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @Operation(summary = "Get problem's runtime limit, memory limit, compile time limit, contest info")
     public ResponseEntity<Object> getConstraintsById(@PathVariable Integer contestId, @PathVariable Integer problemId) {
         ProblemConstraints constraints = contestService.getConstraints(contestId, problemId);
         return ResponseEntity.ok(constraints);
     }
 
 
-    @PostMapping("/contest/create")
+    @PostMapping("/contest")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Contest's id",
+                    content = @Content(schema = @Schema(implementation = Long.class))),
+            @ApiResponse(responseCode = "401",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "400",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @Operation(summary = "Create new contest")
     public ResponseEntity<Object> createContest(@Valid @RequestBody CreateContestDto dto,
                                                 @RequestHeader(value = "X-User-Id", required = false) Integer userId) {

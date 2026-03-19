@@ -52,9 +52,6 @@ public class ProblemValidator {
         } catch (Exception ex) {
             throw ex;
         }
-        System.out.println(inputFileNames);
-        System.out.println(outputFileNames);
-
         for (int i = 1; i <= num; i++) {
             String inFile = i + ".in";
             String outFile = i + ".out";

@@ -22,7 +22,6 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 @Service
-@Transactional
 @AllArgsConstructor
 public class ContestService {
     private final ProblemRepository problemRepository;
