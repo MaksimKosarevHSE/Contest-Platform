@@ -1,7 +1,5 @@
 package com.maksim.gateway.filter;
 
-//import lombok.Data;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -16,13 +14,10 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 @Component
 public class AuthFilter implements GlobalFilter, Ordered {
     private final WebClient authServiceWebClient;
-
-    private final List<String> openEndpoints = List.of("/api/auth/register");
 
     public AuthFilter(@Value("${auth.service.url}") String url) {
         this.authServiceWebClient = WebClient.builder()
@@ -39,20 +34,10 @@ public class AuthFilter implements GlobalFilter, Ordered {
                 })
                 .build();
 
-
-        String path = request.getURI().getPath();
-
-        System.out.println("INPUT");
-
-        if (openEndpoints.stream().anyMatch(path::startsWith)) {
-            return chain.filter(exchange);
-        }
-
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return chain.filter(exchange);
         }
-        System.out.println("HAS BEARER");
 
         String token = authHeader.substring(7);
 
@@ -67,10 +52,7 @@ public class AuthFilter implements GlobalFilter, Ordered {
                             .build();
                     return chain.filter(mutatedExchange);
                 })
-                .onErrorResume(e -> {
-                    e.printStackTrace();
-                    return onError(exchange);
-                });
+                .onErrorResume(e -> onError(exchange));
     }
 
     private Mono<ValidateResponse> validateToken(String token) {
@@ -82,7 +64,6 @@ public class AuthFilter implements GlobalFilter, Ordered {
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, response ->
                         {
-                            System.out.println(response.request().toString());
                             return Mono.error(new RuntimeException());
                         }
                 )

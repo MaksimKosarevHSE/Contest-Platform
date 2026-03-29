@@ -1,32 +1,37 @@
 package com.maksim.auth_service.service;
 
-import com.maksim.auth_service.dto.RegisterRequest;
+import com.maksim.auth_service.dto.LoginRequestDto;
+import com.maksim.auth_service.dto.RegisterRequestDto;
+import com.maksim.auth_service.dto.TokenResponseDto;
 import com.maksim.auth_service.entity.User;
+import com.maksim.auth_service.exception.AuthException;
 import com.maksim.auth_service.repository.UserRepository;
-import org.springframework.boot.autoconfigure.jmx.ParentAwareNamingStrategy;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
 
     private final PasswordEncoder encoder;
 
-    public UserService(UserRepository userRepository, PasswordEncoder encoder) {
-        this.userRepository = userRepository;
-        this.encoder = encoder;
-    }
+    private final JwtService jwtService;
 
-    public User authenticate(String email, String password){
-        var dbUser = userRepository.findByEmail(email).orElseThrow(() -> new AuthException("User with email " + email + " is not found"));
+    public TokenResponseDto login(LoginRequestDto request) {
+        String email = request.email();
+        String password = request.password();
+
+        var dbUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AuthException("User with email " + email + " is not found"));
         if (!encoder.matches(password, dbUser.getPasswordHash())) throw new AuthException("Incorrect password");
-        return dbUser;
+        return new TokenResponseDto(jwtService.generateToken(dbUser.getHandle(), dbUser.getId()));
     }
 
-    public void register(RegisterRequest registerRequest) {
-        String email = registerRequest.getEmail();
-        String handle = registerRequest.getHandle();
+    public TokenResponseDto register(RegisterRequestDto registerRequest) {
+        String email = registerRequest.email();
+        String handle = registerRequest.handle();
 
         if (userRepository.existsByEmail(email))
             throw new AuthException("User with email " + email + " already exists");
@@ -34,10 +39,11 @@ public class UserService {
         if (userRepository.existsByHandle(handle))
             throw new AuthException("User with handle " + handle + " already exists");
 
-        var user = new User();
+        User user = new User();
         user.setEmail(email);
         user.setHandle(handle);
-        user.setPasswordHash(encoder.encode(registerRequest.getPassword()));
+        user.setPasswordHash(encoder.encode(registerRequest.password()));
         userRepository.save(user);
+        return new TokenResponseDto(jwtService.generateToken(user.getHandle(), user.getId()));
     }
 }

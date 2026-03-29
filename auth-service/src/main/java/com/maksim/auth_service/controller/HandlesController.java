@@ -23,5 +23,4 @@ public class HandlesController {
     public ResponseEntity<?> getUserHandles(@RequestParam("ids") List<Integer> ids) {
         return ResponseEntity.ok(handleService.getUsersHandles(ids));
     }
-
 }

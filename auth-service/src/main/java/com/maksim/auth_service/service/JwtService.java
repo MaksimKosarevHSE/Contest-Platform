@@ -1,6 +1,7 @@
 package com.maksim.auth_service.service;
 
-import com.maksim.auth_service.dto.ValidateResponse;
+import com.maksim.auth_service.dto.ValidateResponseDto;
+import com.maksim.auth_service.exception.AuthException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -17,32 +18,24 @@ public class JwtService {
     @Value("${auth.jwt.expiration}")
     private int JWT_EXPIRATION_MINUTES;
 
-    public ValidateResponse validate(String token) {
-
+    public ValidateResponseDto validate(String token) {
         try {
             var claims = Jwts.parserBuilder().setSigningKey(getSignKey()).build()
                     .parseClaimsJws(token).getBody();
-            var resp = ValidateResponse.builder()
-                    .id(Integer.valueOf(claims.getSubject()))
-                    .handle(claims.get("handle", String.class))
-                    .build();
-            if (resp.getHandle() != null) return resp;
+            return new ValidateResponseDto(Integer.valueOf(claims.getSubject()), claims.get("handle", String.class));
         } catch (Exception ex) {
-//            ex.printStackTrace();
+            throw new AuthException("Invalid token");
         }
-        return null;
     }
-
 
     public String generateToken(String handle, int userId) {
         return Jwts.builder()
                 .claim("handle", handle)
                 .setSubject(String.valueOf(userId))
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + (long) JWT_EXPIRATION_MINUTES * 60 * 1000))
+                .setExpiration(new Date(System.currentTimeMillis() + (long) JWT_EXPIRATION_MINUTES * 60 * 10000))
                 .signWith(getSignKey(), SignatureAlgorithm.HS256).compact();
     }
-
 
     private Key getSignKey() {
         var bytes = SECRET.getBytes();

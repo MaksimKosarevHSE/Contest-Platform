@@ -1,4 +1,4 @@
-package com.maksim.auth_service.service;
+package com.maksim.auth_service.exception;
 
 public class AuthException extends RuntimeException {
     public AuthException(String message) {
