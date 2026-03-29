@@ -1,6 +1,5 @@
 package com.maksim.submissionAcceptorService.repository;
 
-import com.maksim.submissionAcceptorService.enums.ProgrammingLanguage;
 import com.maksim.submissionAcceptorService.enums.Status;
 import com.maksim.submissionAcceptorService.entity.Submission;
 import org.springframework.data.domain.Page;
@@ -19,8 +18,7 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
             "WHERE (:userId IS NULL OR s.userId = :userId) " +
             "AND (:problemId IS NULL OR s.problemId = :problemId) " +
             "AND (:contestId IS NULL OR s.contestId = :contestId) " +
-            "AND (:status IS NULL OR s.status = :status) " +
-            "AND (:language IS NULL OR s.programmingLanguage = :language) " +
+            "AND (:status IS NULL OR s.status = :status)" +
             "ORDER BY s.id DESC")
     Page<Submission> findAllFiltered(@Param("contestId") Integer contestId,
                                      @Param("problemId") Integer problemId,

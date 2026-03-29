@@ -1,3 +1,10 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+auth:
+  service:
+    url: ${AUTH_SERVICE_URL:http://localhost:8005}
+
 spring:
   application:
     name: api-gateway
@@ -11,10 +18,12 @@ spring:
           uri: http://auth-service:8003
           predicates:
             - Path=/api/auth/**
+
         - id: problem-contest-service
           uri: http://problem-service:8000
           predicates:
-            - Path=/api/contests/**,/api/contest/**,/api/problem/**
+            - Path=/api/contests/**,/api/contest/**,/api/problem/**,/api/problems/**,
+
         - id: submission-service
           uri: http://submission-service:8001
           predicates:
@@ -29,12 +38,3 @@ spring:
             allowedOrigins: [ "*" ]
             allowedMethods: [ GET, POST, OPTIONS, PUT, DELETE ]
             allowedHeaders: [ "*" ]
-
-
-
-server:
-  port: ${SERVER_PORT:8080}
-
-auth:
-  service:
-    url: ${AUTH_SERVICE_URL:http://localhost:8005}

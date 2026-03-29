@@ -118,6 +118,7 @@ public class JudgingSystemService {
 
         for (int i = 1; i <= testsCnt; i++) {
             sendProgress(submissionMeta.getSubmissionId(), i);
+            verdictInfo.setTestNum(i);
 //            log.debug("START TEST {}", i);
             ProcessBuilder pb = new ProcessBuilder();
             pb.command(submissionMeta.getLanguage().getRunCommand(compiledFile));
@@ -135,14 +136,12 @@ public class JudgingSystemService {
 
             if (!successEnd) {
                 process.destroyForcibly();
-                verdictInfo.setTestNum(i);
                 verdictInfo.setStatus(Status.TIME_LIMIT);
                 throw new BadVerdictException("Time limit exceeded");
             }
 
             int exitCode = process.exitValue();
             if (exitCode != 0) {
-                verdictInfo.setTestNum(i);
                 verdictInfo.setStatus(Status.RUNTIME_ERROR);
                 throw new BadVerdictException("Runtime error");
             }
@@ -160,6 +159,7 @@ public class JudgingSystemService {
             }
         }
 
+        verdictInfo.setCheckerMessage("OK");
         verdictInfo.setStatus(Status.OK);
     }
 
@@ -183,7 +183,6 @@ public class JudgingSystemService {
                 break;
             case 1:
                 verdictInfo.setStatus(Status.WRONG_ANSWER);
-                verdictInfo.setTestNum(testNum);
                 throw new BadVerdictException(new String(Files.readAllBytes(Path.of(checkerOutFile))));
             default:
                 log.debug("Checker RE error");
@@ -232,7 +231,7 @@ public class JudgingSystemService {
                     break;
                 }
                 if (line1 == null || line2 == null) {
-                    verdictInfo.setTestNum(testNum);
+
                     verdictInfo.setStatus(Status.WRONG_ANSWER);
                     String msg;
                     if (line1 == null)
@@ -246,7 +245,7 @@ public class JudgingSystemService {
                 line2 = line2.replaceAll("(\\n|\\s)", "");
 
                 if (!line1.equals(line2)) {
-                    verdictInfo.setTestNum(testNum);
+
                     verdictInfo.setStatus(Status.WRONG_ANSWER);
                     throw new BadVerdictException("The line " + lineCnt + " is different from the judge's solution");
                 }

@@ -65,7 +65,6 @@ public class AuthFilter implements GlobalFilter, Ordered {
                     ServerWebExchange mutatedExchange = exchange.mutate()
                             .request(mutatedRequest)
                             .build();
-                    System.out.println("NICE");
                     return chain.filter(mutatedExchange);
                 })
                 .onErrorResume(e -> {
