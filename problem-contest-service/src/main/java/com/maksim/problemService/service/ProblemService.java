@@ -24,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -80,13 +81,14 @@ public class ProblemService {
     }
 
     public PageResponseDto<ProblemSignatureResponseDto> getPublicProblemsSignatures(Integer pageNumber, Integer pageSize) {
-        Page<ProblemSignatureResponseDto> page = problemRepository.findByIsPublicTrue(PageRequest.of(pageNumber - 1, pageSize))
+        Page<ProblemSignatureResponseDto> page = problemRepository
+                .findByIsPublicTrue(PageRequest.of(pageNumber - 1, pageSize, Sort.by(Sort.Direction.DESC, "id")))
                 .map(problemMapper::toProblemSignature);
         return PageResponseDto.from(page);
     }
 
     public PageResponseDto<ProblemSignatureResponseDto> getUsersProblemsSignatures(Integer userId, Integer pageNumber, Integer pageSize) {
-        Page<ProblemSignatureResponseDto> page = problemRepository.findByCreatorId(userId, PageRequest.of(pageNumber - 1, pageSize))
+        Page<ProblemSignatureResponseDto> page = problemRepository.findByCreatorId(userId, PageRequest.of(pageNumber - 1, pageSize, Sort.by(Sort.Direction.DESC, "id")))
                 .map(problemMapper::toProblemSignature);
         return PageResponseDto.from(page);
     }

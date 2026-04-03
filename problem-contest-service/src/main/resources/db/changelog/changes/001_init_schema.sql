@@ -16,6 +16,9 @@ CREATE TABLE IF NOT EXISTS problems (
     memory_limit DOUBLE PRECISION NOT NULL
     );
 
+CREATE INDEX idx_problems_creator_id ON problems(creator_id);
+CREATE INDEX idx_problems_is_public ON problems(is_public);
+
 
 CREATE TABLE IF NOT EXISTS contests (
     id SERIAL PRIMARY KEY,
@@ -25,12 +28,18 @@ CREATE TABLE IF NOT EXISTS contests (
     end_time TIMESTAMP NOT NULL
     );
 
+CREATE INDEX idx_contests_author_id ON contests(author_id);
+CREATE INDEX idx_contests_start_time ON contests(start_time);
+
 CREATE TABLE IF NOT EXISTS contest_problem (
     id SERIAL PRIMARY KEY,
    contest_id INTEGER NOT NULL,
    problem_id INTEGER NOT NULL,
    score INTEGER NOT NULL DEFAULT 0
     );
+
+CREATE UNIQUE INDEX idx_contest_problem_unique_pair ON contest_problem(contest_id, problem_id);
+CREATE INDEX idx_contest_problem_problem_id ON contest_problem(problem_id);
 
 
 CREATE TABLE IF NOT EXISTS contest_user (
@@ -39,6 +48,9 @@ CREATE TABLE IF NOT EXISTS contest_user (
     total_score INTEGER NOT NULL DEFAULT 0,
     CONSTRAINT pk_contest_user PRIMARY KEY (contest_id, user_id)
     );
+
+CREATE UNIQUE INDEX idx_contest_user_unique_pair ON contest_problem(contest_id, problem_id);
+CREATE INDEX idx_contest_user_user_id ON contest_user(user_id);
 
 
 CREATE TABLE IF NOT EXISTS contest_user_task (
@@ -51,6 +63,9 @@ CREATE TABLE IF NOT EXISTS contest_user_task (
      solution_time TIMESTAMP,
      CONSTRAINT pk_contest_user_task PRIMARY KEY (contest_id, user_id, task_id)
     );
+
+CREATE INDEX idx_contest_user_task_task_id ON contest_user_task(task_id);
+CREATE INDEX idx_contest_user_task_user_id ON contest_user_task(user_id);
 
 CREATE TABLE IF NOT EXISTS processed_events (
     event_id UUID PRIMARY KEY
@@ -87,5 +102,13 @@ ALTER TABLE contest_user_task
     ADD CONSTRAINT fk_contest_user_task_contest
         FOREIGN KEY (contest_id)
             REFERENCES contests(id)
+            ON DELETE CASCADE
+            ON UPDATE CASCADE;
+
+-- contest_user_task -> problem
+ALTER TABLE contest_user_task
+    ADD CONSTRAINT fk_contest_user_task_problem
+        FOREIGN KEY (task_id)
+            REFERENCES problems(id)
             ON DELETE CASCADE
             ON UPDATE CASCADE;
