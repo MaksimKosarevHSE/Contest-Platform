@@ -1,41 +1,54 @@
 package com.maksim.auth_service.controller;
 
 
-import com.maksim.auth_service.dto.LoginRequestDto;
-import com.maksim.auth_service.dto.RegisterRequestDto;
-import com.maksim.auth_service.dto.TokenResponseDto;
-import com.maksim.auth_service.dto.ValidateRequestDto;
-import com.maksim.auth_service.dto.ValidateResponseDto;
-import com.maksim.auth_service.service.UserService;
-import com.maksim.auth_service.service.JwtService;
+import com.maksim.auth_service.dto.AuthResponse;
+import com.maksim.auth_service.dto.LoginRequest;
+import com.maksim.auth_service.dto.RegisterRequest;
+import com.maksim.auth_service.dto.ValidateRequest;
+import com.maksim.auth_service.dto.ValidateResponse;
+import com.maksim.auth_service.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-// Сервис реализован максимально компактно и просто на одном jwt
+import java.util.UUID;
 
-@CrossOrigin
+
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final JwtService jwtService;
-
-    private final UserService userService;
-
-    @PostMapping("/register")
-    public ResponseEntity<TokenResponseDto> register(@RequestBody RegisterRequestDto request) {
-        return ResponseEntity.ok(userService.register(request));
-    }
+    private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<TokenResponseDto> login(@RequestBody LoginRequestDto request) {
-        return ResponseEntity.ok(userService.login(request));
+    public ResponseEntity<AuthResponse> login(@RequestBody @Valid LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponse> registerStudent(@RequestBody @Valid RegisterRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(
+            @RequestHeader(value = "X-Refresh-Token") UUID refreshToken) {
+        return ResponseEntity.ok(authService.refresh(refreshToken));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @RequestHeader(value = "X-Refresh-Token") UUID refreshToken) {
+        authService.logout(refreshToken);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
     @PostMapping("/validate")
-    public ResponseEntity<ValidateResponseDto> validate(@RequestBody ValidateRequestDto validateRequest) {
-        return ResponseEntity.ok(jwtService.validate(validateRequest.token()));
+    public ResponseEntity<ValidateResponse> validate(@RequestBody ValidateRequest validateRequest) {
+        return ResponseEntity.ok(authService.validate(validateRequest));
     }
+
 }

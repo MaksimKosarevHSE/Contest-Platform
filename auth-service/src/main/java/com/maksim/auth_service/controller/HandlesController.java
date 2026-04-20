@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -15,12 +16,12 @@ public class HandlesController {
     private final HandleService handleService;
 
     @GetMapping("/users/{userId}/hanlde")
-    public String getUserHandle(@PathVariable Integer userId) {
-        return handleService.getUserHandle(userId);
+    public ResponseEntity<String> getUserHandle(@PathVariable Integer userId) {
+        return ResponseEntity.ok(handleService.getUserHandle(userId));
     }
 
     @GetMapping("/users/handles")
-    public ResponseEntity<?> getUserHandles(@RequestParam("ids") List<Integer> ids) {
+    public ResponseEntity<Map<Integer, String>> getUserHandles(@RequestParam("ids") List<Integer> ids) {
         return ResponseEntity.ok(handleService.getUsersHandles(ids));
     }
 }

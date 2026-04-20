@@ -21,10 +21,15 @@ services:
     environment:
       SERVER_PORT: 8003
       JWT_SECRET: kalsdjflasfjdljflaskdjflkasjdflkajsdlfkjasldkfjlaskdjflkasdjf'
-      JWT_EXP_MINUTES: 100
+      JWT_EXPIRATION_MILLIS: 100
+      REFRESH_EXPIRATION_MILLIS: 2322323
+      BCRYPT_ROUNDS: 10
       SPRING_DATASOURCE_URL: jdbc:postgresql://db-auth-service:5432/postgres
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: root
+      REDIS_URL: redis-auth-service
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: qwerty
     ports:
       - "8003:8003"
     networks:
@@ -176,6 +181,14 @@ services:
       - "6380:6379"
     networks:
       - external
+
+  redis-auth-service:
+    image: redis:8.4
+    ports:
+      - "6381:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD:-qwerty}
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-qwerty}
 
 networks:
   external:
