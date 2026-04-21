@@ -1,0 +1,40 @@
+name: CI - Docker Compose Build & Smoke Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-compose:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker images
+        run: docker-compose build
+        
+      - name: Start services
+        run: docker-compose up -d
+
+      - name: Wait for services
+        run: sleep 40
+
+      - name: Check running containers
+        run: |
+          CRITICAL="gateway auth-service problem-service submission-service judging-service kafka"
+          for svc in $CRITICAL; do
+            if ! docker ps --filter "name=$svc" --filter "status=running" | grep -q "$svc"; then
+              echo "$svc not running"
+              docker-compose logs $svc
+              exit 1
+            fi
+          done
+          echo "All services up"
+
+      - name: Stop containers
+        if: always()
+        run: docker-compose down
