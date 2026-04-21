@@ -53,7 +53,7 @@ public class StandingsService {
         ContestUserTask cut = cutRepository.findById(cutId)
                 .orElseGet(() -> createNewTask(cutId, contestId, taskId));
 
-        if (cut.isSolved()) {
+        if (cut.getSolved()) {
             return;
         }
         cut.incAttempts();
@@ -210,7 +210,7 @@ public class StandingsService {
 
     private TaskProgressResponseDto convertToDto(ContestUserTask cut) {
         return new TaskProgressResponseDto(cut.getId().getTaskId(),
-                cut.isSolved(),
+                cut.getSolved(),
                 cut.getAttempts(),
                 cut.getSolutionTime() != null ? (int) Duration.between(cut.getContest().getStartTime(), cut.getSolutionTime()).getSeconds() : 0,
                 cut.getScore()
