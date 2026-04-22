@@ -16,13 +16,9 @@ import java.util.Optional;
 
 public interface ContestUserRepository extends JpaRepository<ContestUser, ContestUserId> {
 
-    Optional<ContestUser> findById_ContestIdAndId_UserId(Integer idContestId, Integer idUserId);
-
     List<ContestUser> findById_ContestId(Integer contestId);
 
     Page<ContestUser> findById_ContestId(Integer contestId, Pageable pageable);
-
-    void deleteById_ContestId(Integer contestId);
 
     @Query("SELECT cu.contest FROM ContestUser cu WHERE cu.id.userId = :userId ORDER BY cu.contest.startTime DESC")
     Page<Contest> findContestsByUserId(@Param("userId") int userId, Pageable pageable);

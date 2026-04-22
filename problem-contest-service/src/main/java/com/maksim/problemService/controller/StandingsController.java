@@ -33,8 +33,25 @@ public class StandingsController {
             @ApiResponse(responseCode = "500",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public ResponseEntity<PageResponseDto<UserProgressResponseDto>> getStandings(@PathVariable Integer contestId,
-                                                                                 @RequestParam(name = "page", defaultValue = "1") Integer page) {
+    public ResponseEntity<PageResponseDto<UserProgressResponseDto>> getStandingsPage(@PathVariable Integer contestId,
+                                                                                     @RequestParam(name = "page", defaultValue = "1") Integer page) {
         return ResponseEntity.ok(standingsService.getLeaderboard(contestId, page, PAGE_SIZE));
     }
+
+    @GetMapping("/contest/{contestId}/user/{userId}/standings")
+    @Operation(summary = "Get user's standings in the contest")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User's standings in the contest",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    public ResponseEntity<UserProgressResponseDto> getUserStandings(@PathVariable Integer contestId,
+                                                                    @PathVariable Integer userId) {
+        return ResponseEntity.ok(standingsService.getUserStandings(contestId, userId));
+    }
+
+
 }

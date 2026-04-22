@@ -57,7 +57,7 @@ public class StandingsService {
             return;
         }
         cut.incAttempts();
-        
+
         if (event.getStatus() == Status.OK) {
             cut.setSolved(true);
             int scoreForTask = 100;
@@ -123,20 +123,10 @@ public class StandingsService {
             int totalScore = tuple.getScore().intValue();
 
             Map<Integer, TaskProgressResponseDto> taskMap = cacheService.getUserTasksDetails(contestId, userId);
-            if (taskMap.isEmpty()) {
-                UserProgressResponseDto userProgress = getUserProgressFromDb(contestId, userId);
-                taskMap = userProgress.taskProgress().stream()
-                        .collect(Collectors.toMap(TaskProgressResponseDto::taskId, t -> t));
-
-                for (Map.Entry<Integer, TaskProgressResponseDto> entry : taskMap.entrySet()) {
-                    cacheService.putUserTaskDetail(contestId, userId, entry.getKey(), entry.getValue());
-                }
-            }
 
             List<TaskProgressResponseDto> tasks = new ArrayList<>(taskMap.values());
-            tasks.sort(Comparator.comparingInt(TaskProgressResponseDto::taskId));
 
-            UserProgressResponseDto dto = new UserProgressResponseDto(userId, rank, tasks, totalScore);
+            UserProgressResponseDto dto = UserProgressResponseDto.of(userId, rank, tasks, totalScore);
             result.add(dto);
             rank++;
         }
@@ -150,6 +140,17 @@ public class StandingsService {
         );
     }
 
+    public UserProgressResponseDto getUserStandings(Integer contestId, Integer userId) {
+        ContestUser contestUser = getContestUser(contestId, userId);
+        if (contestUser.getContest().getStartTime().isAfter(Instant.now())) {
+            throw new AccessDeniedException("The contest has not started");
+        }
+        ensureCacheBuilt(contestId);
+        Map<Integer, TaskProgressResponseDto> tasks = cacheService.getUserTasksDetails(contestId, userId);
+        Integer rank = cacheService.getUserRank(contestId, userId);
+        Integer totalScore = cacheService.getUserScore(contestId, userId);
+        return UserProgressResponseDto.of(userId, rank, new ArrayList<>(tasks.values()), totalScore);
+    }
 
     private void ensureCacheBuilt(int contestId) {
         if (cacheService.existsLeaderboard(contestId)) {
@@ -179,10 +180,9 @@ public class StandingsService {
             List<ContestUserTask> userTasks = tasksByUser.getOrDefault(userId, Collections.emptyList());
             List<TaskProgressResponseDto> taskDtos = userTasks.stream()
                     .map(this::convertToDto)
-                    .sorted(Comparator.comparingInt(TaskProgressResponseDto::taskId))
                     .toList();
 
-            UserProgressResponseDto dto = new UserProgressResponseDto(userId, 0, taskDtos, cu.getTotalScore());
+            UserProgressResponseDto dto = UserProgressResponseDto.of(userId, 0, taskDtos, cu.getTotalScore());
             users.add(dto);
         }
 
@@ -194,18 +194,6 @@ public class StandingsService {
         System.out.println(contestId + " " + userId);
         return cuRepository.findById(new ContestUserId(userId, contestId)).
                 orElseThrow(() -> new ResourceNotFoundException("User not registered in this contest"));
-    }
-
-    //  прогресс без места и totalScore
-    private UserProgressResponseDto getUserProgressFromDb(int contestId, int userId) {
-        ContestUser cu = getContestUser(contestId, userId);
-        List<ContestUserTask> tasks = cutRepository.findById_ContestIdAndId_UserId(contestId, userId);
-
-        List<TaskProgressResponseDto> taskDtos = tasks.stream()
-                .map(this::convertToDto)
-                .sorted(Comparator.comparingInt(TaskProgressResponseDto::taskId))
-                .toList();
-        return new UserProgressResponseDto(userId, 0, taskDtos, cu.getTotalScore());
     }
 
     private TaskProgressResponseDto convertToDto(ContestUserTask cut) {

@@ -44,6 +44,19 @@ public class StandingsCacheService {
         redisTemplate.opsForZSet().add(leaderboardKey(contestId), String.valueOf(userId), totalScore);
     }
 
+    public Integer getUserRank(int contestId, int userId){
+        Long rank = redisTemplate.opsForZSet().reverseRank(leaderboardKey(contestId), String.valueOf(userId));
+        if (rank == null) {
+            return null;
+        }
+        return rank.intValue() + 1;
+    }
+
+    public Integer getUserScore(int contestId, int userId) {
+        Double score = redisTemplate.opsForZSet().score(leaderboardKey(contestId), String.valueOf(userId));
+        return score != null ? score.intValue() : null;
+    }
+
     public Set<ZSetOperations.TypedTuple<String>> getLeaderboardRange(int contestId, long start, long end) {
         return redisTemplate.opsForZSet().reverseRangeWithScores(leaderboardKey(contestId), start, end);
     }
@@ -85,9 +98,6 @@ public class StandingsCacheService {
         redisTemplate.delete(leaderboardKey(contestId));
     }
 
-    public void deleteUserDetails(int contestId, int userId) {
-        redisTemplate.delete(userDetailsKey(contestId, userId));
-    }
 
     public void rebuildFromDatabase(int contestId, List<UserProgressResponseDto> users) {
         String leaderboardKey = leaderboardKey(contestId);
@@ -110,7 +120,6 @@ public class StandingsCacheService {
                                 }
                             }
                     ));
-//            taskMap.values().removeIf(Objects::isNull);
             if (!taskMap.isEmpty()) {
                 redisTemplate.opsForHash().putAll(userKey, taskMap);
                 redisTemplate.expire(userKey, CACHE_TTL);
