@@ -4,7 +4,7 @@ import com.maksim.problemService.exception.AccessDeniedException;
 import com.maksim.problemService.exception.BadRequestException;
 import com.maksim.problemService.exception.ConflictException;
 import com.maksim.problemService.exception.ResourceNotFoundException;
-import com.maksim.problemService.exception.UnauthorizedAccessException;
+import com.maksim.problemService.exception.ForbiddenException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -45,7 +45,7 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(message));
     }
 
-    @ExceptionHandler({UnauthorizedAccessException.class, AccessDeniedException.class})
+    @ExceptionHandler({ForbiddenException.class, AccessDeniedException.class})
     public ResponseEntity<ErrorResponse> handleUnauthorized(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(ex.getMessage()));
     }

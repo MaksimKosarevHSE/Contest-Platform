@@ -12,7 +12,7 @@ import com.maksim.problemService.dto.problem.ProblemUpdateDto;
 import com.maksim.problemService.dto.problem.SendTestCasesToJudgeServiceDto;
 import com.maksim.problemService.entity.associative.ContestProblem;
 import com.maksim.problemService.exception.ResourceNotFoundException;
-import com.maksim.problemService.exception.UnauthorizedAccessException;
+import com.maksim.problemService.exception.ForbiddenException;
 import com.maksim.problemService.exception.BadRequestException;
 import com.maksim.problemService.repository.associative.ContestProblemRepository;
 import com.maksim.problemService.validators.ProblemValidator;
@@ -28,7 +28,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class ProblemServiceImpl implements ProblemService{
+public class ProblemServiceImpl implements ProblemService {
     private final ProblemRepository problemRepository;
 
     private final ProblemValidator problemValidator;
@@ -59,7 +59,7 @@ public class ProblemServiceImpl implements ProblemService{
         Problem problem = problemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Problem not found"));
         if (problem.getCreatorId() != (int) userId) {
-            throw new UnauthorizedAccessException("Only author can update problem");
+            throw new ForbiddenException("Only author can update problem");
         }
         problemMapper.updateFromPatch(problem, dto);
         problem = problemRepository.save(problem);
@@ -71,7 +71,7 @@ public class ProblemServiceImpl implements ProblemService{
         Problem problem = problemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Problem not found"));
         if (problem.getCreatorId() != (int) userId) {
-            throw new UnauthorizedAccessException("Only author can delete problem");
+            throw new ForbiddenException("Only author can delete problem");
         }
         if (contestProblemRepository.existsByProblemId(id)) {
             throw new BadRequestException("Problem is used in contests, can't delete");
@@ -111,7 +111,7 @@ public class ProblemServiceImpl implements ProblemService{
             return problemMapper.toProblemConstraintsDto(problem);
         }
         ContestProblem contestProblem = contestProblemRepository.findByContestIdAndProblemId(contestId, problemId)
-                .orElseThrow(() -> new ResourceNotFoundException("Problem in the contest found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Problem in the contest not found"));
         ProblemConstrainsResponseDto response = problemMapper.toProblemConstraintsDto(contestProblem.getProblem());
         response.setContestId(contestProblem.getContest().getId());
         response.setContestEndTime(contestProblem.getContest().getEndTime());

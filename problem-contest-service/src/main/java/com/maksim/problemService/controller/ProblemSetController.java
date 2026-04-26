@@ -36,10 +36,8 @@ public class ProblemSetController {
     @PostMapping(value = "/problem", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Create new problem")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Problem created",
+            @ApiResponse(responseCode = "201", description = "Problem created",
                     content = @Content(schema = @Schema(implementation = ProblemResponseDto.class))),
-            @ApiResponse(responseCode = "401",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "400",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",
@@ -102,6 +100,10 @@ public class ProblemSetController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Problem updated",
                     content = @Content(schema = @Schema(implementation = ProblemResponseDto.class))),
+            @ApiResponse(responseCode = "400",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",
@@ -133,8 +135,10 @@ public class ProblemSetController {
     @DeleteMapping("/problem/{id}")
     @Operation(summary = "Delete problem")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Problem deleted",
+            @ApiResponse(responseCode = "204", description = "Problem deleted",
                     content = @Content(schema = @Schema())),
+            @ApiResponse(responseCode = "403",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",

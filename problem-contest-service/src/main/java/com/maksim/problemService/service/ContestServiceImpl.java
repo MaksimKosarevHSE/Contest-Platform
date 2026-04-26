@@ -14,7 +14,7 @@ import com.maksim.problemService.entity.associative.ContestUser;
 import com.maksim.problemService.entity.keys.ContestUserId;
 import com.maksim.problemService.exception.ConflictException;
 import com.maksim.problemService.exception.ResourceNotFoundException;
-import com.maksim.problemService.exception.UnauthorizedAccessException;
+import com.maksim.problemService.exception.ForbiddenException;
 import com.maksim.problemService.exception.BadRequestException;
 import com.maksim.problemService.repository.ContestRepository;
 import com.maksim.problemService.repository.associative.ContestProblemRepository;
@@ -64,7 +64,7 @@ public class ContestServiceImpl implements ContestService {
         Contest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Contest not found"));
         if (contest.getAuthorId() != (int) userId) {
-            throw new UnauthorizedAccessException("Only author can update contest");
+            throw new ForbiddenException("Only author can update contest");
         }
         if (contest.getStartTime().isBefore(Instant.now())) {
             throw new BadRequestException("Contest already started. You can't change it");
@@ -84,7 +84,7 @@ public class ContestServiceImpl implements ContestService {
         Contest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Contest not found"));
         if (contest.getAuthorId() != (int) userId) {
-            throw new UnauthorizedAccessException("Only author can delete contest");
+            throw new ForbiddenException("Only author can delete contest");
         }
         contestRepository.delete(contest);
     }

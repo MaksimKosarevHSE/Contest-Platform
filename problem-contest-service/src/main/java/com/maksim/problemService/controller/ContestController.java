@@ -37,10 +37,8 @@ public class ContestController {
     @PostMapping("/contest")
     @Operation(summary = "Create contest")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Contest created",
+            @ApiResponse(responseCode = "201", description = "Contest created",
                     content = @Content(schema = @Schema(implementation = ContestResponseDto.class))),
-            @ApiResponse(responseCode = "401",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "400",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",
@@ -56,7 +54,7 @@ public class ContestController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Contest updated",
                     content = @Content(schema = @Schema(implementation = ContestResponseDto.class))),
-            @ApiResponse(responseCode = "401",
+            @ApiResponse(responseCode = "403",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "400",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
@@ -72,10 +70,8 @@ public class ContestController {
     @DeleteMapping("/contest/{contestId}")
     @Operation(summary = "Delete contest")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Contest deleted"),
-            @ApiResponse(responseCode = "401",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "400",
+            @ApiResponse(responseCode = "204", description = "Contest deleted"),
+            @ApiResponse(responseCode = "403",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
@@ -91,10 +87,6 @@ public class ContestController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Contest description",
                     content = @Content(schema = @Schema(implementation = ContestResponseDto.class))),
-            @ApiResponse(responseCode = "401",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "400",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
@@ -136,10 +128,10 @@ public class ContestController {
     @PostMapping("/contest/{contestId}/contestants")
     @Operation(summary = "Register for contest")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Success registration"),
+            @ApiResponse(responseCode = "204", description = "Success registration"),
             @ApiResponse(responseCode = "400",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "401",
+            @ApiResponse(responseCode = "409",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
@@ -174,6 +166,8 @@ public class ContestController {
             @ApiResponse(responseCode = "200", description = "Problem description in contest",
                     content = @Content(schema = @Schema(implementation = ProblemResponseDto.class))),
             @ApiResponse(responseCode = "404",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "409",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
