@@ -3,24 +3,31 @@ package com.maksim.problemService.dto.problem;
 import com.maksim.problemService.enums.CheckerType;
 import com.maksim.problemService.enums.ProgrammingLanguage;
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Stream;
 
+@Slf4j
 @AllArgsConstructor
-@Getter
-@Setter
+@Data
 @ToString
 @NoArgsConstructor
 public class SendTestCasesToJudgeServiceDto {
     private Integer problemId;
+
     private List<byte[]> testFilesContent;
+
     private List<String> testFilesNames;
+
     private Integer countOfTestCases;
+
     private CheckerType checkerType;
+
     private ProgrammingLanguage checkerLanguage;
+
     private byte[] checkerSourceCode; // optional
 
     public static SendTestCasesToJudgeServiceDto from(ProblemCreateDto p) {
@@ -32,6 +39,7 @@ public class SendTestCasesToJudgeServiceDto {
             try {
                 target.checkerSourceCode = p.fileSourceChecker().getBytes();
             } catch (IOException e) {
+                log.error("Error reading checker source code from file");
                 throw new RuntimeException(e);
             }
             target.checkerLanguage = p.checkerLanguage();
@@ -42,6 +50,7 @@ public class SendTestCasesToJudgeServiceDto {
                     try {
                         return file.getBytes();
                     } catch (IOException e) {
+                        log.error("Error reading source code from file");
                         throw new RuntimeException(e);
                     }
                 }).toList();

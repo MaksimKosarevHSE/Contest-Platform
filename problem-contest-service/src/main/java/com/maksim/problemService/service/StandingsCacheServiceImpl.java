@@ -44,7 +44,7 @@ public class StandingsCacheServiceImpl implements StandingsCacheService {
         redisTemplate.opsForZSet().add(leaderboardKey(contestId), String.valueOf(userId), totalScore);
     }
 
-    public Integer getUserRank(int contestId, int userId){
+    public Integer getUserRank(int contestId, int userId) {
         Long rank = redisTemplate.opsForZSet().reverseRank(leaderboardKey(contestId), String.valueOf(userId));
         if (rank == null) {
             return null;
@@ -66,14 +66,11 @@ public class StandingsCacheServiceImpl implements StandingsCacheService {
     }
 
     public void putUserTaskDetail(int contestId, int userId, int taskId, TaskProgressResponseDto taskDetail) {
-        try {
-            String taskJson = objectMapper.writeValueAsString(taskDetail);
-            String key = userDetailsKey(contestId, userId);
-            redisTemplate.opsForHash().put(key, String.valueOf(taskId), taskJson);
-            redisTemplate.expire(key, CACHE_TTL);
-        } catch (Exception e) {
-            log.error("Serialization exception {}", e.getMessage());
-        }
+        String taskJson = objectMapper.writeValueAsString(taskDetail);
+        String key = userDetailsKey(contestId, userId);
+        redisTemplate.opsForHash().put(key, String.valueOf(taskId), taskJson);
+        redisTemplate.expire(key, CACHE_TTL);
+
     }
 
     public Map<Integer, TaskProgressResponseDto> getUserTasksDetails(int contestId, int userId) {
@@ -83,42 +80,29 @@ public class StandingsCacheServiceImpl implements StandingsCacheService {
 
         Map<Integer, TaskProgressResponseDto> result = new HashMap<>();
         for (Map.Entry<Object, Object> entry : entries.entrySet()) {
-            try {
-                int taskId = Integer.parseInt(entry.getKey().toString());
-                TaskProgressResponseDto dto = objectMapper.readValue(entry.getValue().toString(), TaskProgressResponseDto.class);
-                result.put(taskId, dto);
-            } catch (Exception e) {
-                log.error("Deserialization exception {}", e.getMessage());
-            }
+            int taskId = Integer.parseInt(entry.getKey().toString());
+            TaskProgressResponseDto dto = objectMapper.readValue(entry.getValue().toString(), TaskProgressResponseDto.class);
+            result.put(taskId, dto);
         }
         return result;
     }
-//
+
     private void deleteLeaderboard(int contestId) {
         redisTemplate.delete(leaderboardKey(contestId));
     }
-
 
     public void rebuildFromDatabase(int contestId, List<UserProgressResponseDto> users) {
         String leaderboardKey = leaderboardKey(contestId);
         deleteLeaderboard(contestId);
 
         for (UserProgressResponseDto user : users) {
-
             redisTemplate.opsForZSet().add(leaderboardKey, String.valueOf(user.userId()), user.score());
             String userKey = userDetailsKey(contestId, user.userId());
 
             Map<String, String> taskMap = user.taskProgress().stream()
                     .collect(Collectors.toMap(
                             t -> String.valueOf(t.taskId()),
-                            t -> {
-                                try {
-                                    return objectMapper.writeValueAsString(t);
-                                } catch (Exception e) {
-                                    log.error("Serialization exception {}", e.getMessage());
-                                    throw new RuntimeException(e);
-                                }
-                            }
+                            objectMapper::writeValueAsString
                     ));
             if (!taskMap.isEmpty()) {
                 redisTemplate.opsForHash().putAll(userKey, taskMap);

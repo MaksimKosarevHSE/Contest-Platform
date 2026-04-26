@@ -3,12 +3,14 @@ package com.maksim.problemService.validators;
 import com.maksim.problemService.dto.problem.ProblemCreateDto;
 import com.maksim.problemService.enums.CheckerType;
 import com.maksim.problemService.exception.BadRequestException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Collections;
 import java.util.List;
 
+@Slf4j
 @Component
 public class ProblemValidator {
 
@@ -25,7 +27,7 @@ public class ProblemValidator {
         if (problem.checkerType() == CheckerType.DEFAULT_EXACT_MATCH_CHECKER)
             return;
 
-        var file = problem.fileSourceChecker();
+        MultipartFile file = problem.fileSourceChecker();
 
         if (file == null || file.isEmpty())
             throw new BadRequestException("Custom checker is not provided");
@@ -33,8 +35,8 @@ public class ProblemValidator {
 
     private void validateTestFiles(ProblemCreateDto problem) {
         int num = problem.testCasesNum();
-        var inputFiles = problem.inputTestCases();
-        var outputFiles = problem.outputTestCases();
+        List<MultipartFile> inputFiles = problem.inputTestCases();
+        List<MultipartFile> outputFiles = problem.outputTestCases();
 
         if (inputFiles == null || inputFiles.size() != num)
             throw new BadRequestException("Count of input test files must be " + num);
@@ -49,7 +51,8 @@ public class ProblemValidator {
                     .map(MultipartFile::getOriginalFilename).sorted().toList();
             outputFileNames = problem.outputTestCases().stream()
                     .map(MultipartFile::getOriginalFilename).sorted().toList();
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
+            log.error("Error reading original file name while validation: {}", ex.getMessage());
             throw ex;
         }
         for (int i = 1; i <= num; i++) {
@@ -64,10 +67,10 @@ public class ProblemValidator {
                 throw new BadRequestException("Missing file with name " + outFile + ". Output files must be numbered named from 1.out to " + num + ".out");
 
             if (inputFiles.get(pos1) == null || outputFiles.get(pos2) == null) {
-                throw new RuntimeException("Unexpected error");
+                log.error("Original file name is null");
+                throw new RuntimeException("Original file name is null");
             }
         }
-
     }
 
     private void validateSamples(ProblemCreateDto dto) {

@@ -34,9 +34,9 @@ public class ProblemSetController {
     private final Integer PAGE_SIZE = 20;
 
     @PostMapping(value = "/problem", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Create new problem")
+    @Operation(summary = "Create problem")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Problem created",
+            @ApiResponse(responseCode = "201", description = "Problem is created",
                     content = @Content(schema = @Schema(implementation = ProblemResponseDto.class))),
             @ApiResponse(responseCode = "400",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
@@ -53,7 +53,7 @@ public class ProblemSetController {
     @Operation(summary = "Get problem by ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Problem description",
-                    content = @Content(schema = @Schema(implementation = Problem.class))),
+                    content = @Content(schema = @Schema(implementation = ProblemResponseDto.class))),
             @ApiResponse(responseCode = "404",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",
@@ -89,8 +89,8 @@ public class ProblemSetController {
             @ApiResponse(responseCode = "500",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public ResponseEntity<PageResponseDto<ProblemSignatureResponseDto>> getProblemsSignatures(@RequestParam(defaultValue = "1") Integer page,
-                                                                                              @RequestHeader(value = "X-User-Id") Integer userId) {
+    public ResponseEntity<PageResponseDto<ProblemSignatureResponseDto>> getUserProblemsSignatures(@RequestParam(defaultValue = "1") Integer page,
+                                                                                                  @RequestHeader(value = "X-User-Id") Integer userId) {
         return ResponseEntity.ok(problemService.getUsersProblemsSignatures(userId, page, PAGE_SIZE));
     }
 
@@ -98,7 +98,7 @@ public class ProblemSetController {
     @PutMapping("/problem/{id}")
     @Operation(summary = "Update problem")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Problem updated",
+            @ApiResponse(responseCode = "200", description = "Problem is updated",
                     content = @Content(schema = @Schema(implementation = ProblemResponseDto.class))),
             @ApiResponse(responseCode = "400",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
@@ -109,15 +109,14 @@ public class ProblemSetController {
             @ApiResponse(responseCode = "500",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public ResponseEntity<ProblemResponseDto> updateProblem(
-            @PathVariable Integer id,
-            @Valid @RequestBody ProblemUpdateDto dto,
-            @RequestHeader("X-User-Id") Integer userId) {
+    public ResponseEntity<ProblemResponseDto> updateProblem(@PathVariable Integer id,
+                                                            @Valid @RequestBody ProblemUpdateDto dto,
+                                                            @RequestHeader("X-User-Id") Integer userId) {
         return ResponseEntity.ok(problemService.updateProblem(id, dto, userId));
     }
 
     @GetMapping("/problem/my/{problemId}")
-    @Operation(summary = "Get users' problem")
+    @Operation(summary = "Get user's problem")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Problem description",
                     content = @Content(schema = @Schema(implementation = ProblemResponseDto.class))),
@@ -135,7 +134,7 @@ public class ProblemSetController {
     @DeleteMapping("/problem/{id}")
     @Operation(summary = "Delete problem")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Problem deleted",
+            @ApiResponse(responseCode = "204", description = "Problem is deleted",
                     content = @Content(schema = @Schema())),
             @ApiResponse(responseCode = "403",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
@@ -152,16 +151,15 @@ public class ProblemSetController {
 
 
     @GetMapping("/problem/{problemId}/constraints")
-    @Operation(summary = "Get problem's constraints")
+    @Operation(summary = "Get problems constraints")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Problem's constraints",
+            @ApiResponse(responseCode = "200", description = "Constraints",
                     content = @Content(schema = @Schema(implementation = ProblemConstrainsResponseDto.class))),
             @ApiResponse(responseCode = "404",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-
     public ResponseEntity<ProblemConstrainsResponseDto> getProblemConstraints(@PathVariable Integer problemId) {
         return ResponseEntity.ok(problemService.getProblemConstraints(null, problemId));
     }

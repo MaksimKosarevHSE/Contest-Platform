@@ -28,7 +28,7 @@ public class StandingsController {
     @Operation(summary = "Get contest's standings")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Leaderboard with details",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = PageResponseDto.class))),
             @ApiResponse(responseCode = "404",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",
@@ -43,7 +43,7 @@ public class StandingsController {
     @Operation(summary = "Get user's standings in the contest")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User's standings in the contest",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = UserProgressResponseDto.class))),
             @ApiResponse(responseCode = "404",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",
@@ -53,6 +53,4 @@ public class StandingsController {
                                                                     @PathVariable Integer userId) {
         return ResponseEntity.ok(standingsService.getUserStandings(contestId, userId));
     }
-
-
 }

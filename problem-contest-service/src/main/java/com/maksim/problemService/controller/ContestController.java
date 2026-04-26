@@ -37,7 +37,7 @@ public class ContestController {
     @PostMapping("/contest")
     @Operation(summary = "Create contest")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Contest created",
+            @ApiResponse(responseCode = "201", description = "Contest is created",
                     content = @Content(schema = @Schema(implementation = ContestResponseDto.class))),
             @ApiResponse(responseCode = "400",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
@@ -52,7 +52,7 @@ public class ContestController {
     @PatchMapping("/contest/{contestId}")
     @Operation(summary = "Update contest")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Contest updated",
+            @ApiResponse(responseCode = "200", description = "Contest is updated",
                     content = @Content(schema = @Schema(implementation = ContestResponseDto.class))),
             @ApiResponse(responseCode = "403",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
@@ -70,7 +70,7 @@ public class ContestController {
     @DeleteMapping("/contest/{contestId}")
     @Operation(summary = "Delete contest")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Contest deleted"),
+            @ApiResponse(responseCode = "204", description = "Contest is deleted"),
             @ApiResponse(responseCode = "403",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",
@@ -85,7 +85,7 @@ public class ContestController {
     @GetMapping("/contest/{contestId}")
     @Operation(summary = "Get contest details")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Contest description",
+            @ApiResponse(responseCode = "200", description = "Contest details",
                     content = @Content(schema = @Schema(implementation = ContestResponseDto.class))),
             @ApiResponse(responseCode = "500",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
@@ -97,8 +97,8 @@ public class ContestController {
     @GetMapping("/contests")
     @Operation(summary = "Get contests")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Contests with description",
-                    content = @Content(schema = @Schema(implementation = ContestResponseDto.class))),
+            @ApiResponse(responseCode = "200", description = "Page of contests",
+                    content = @Content(schema = @Schema(implementation = PageResponseDto.class))),
             @ApiResponse(responseCode = "404",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",
@@ -110,10 +110,10 @@ public class ContestController {
 
 
     @GetMapping("/contests/participation/{userId}")
-    @Operation(summary = "Get user's contests")
+    @Operation(summary = "Get the contests that the user participated in")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Contests with description",
-                    content = @Content(schema = @Schema(implementation = ContestResponseDto.class))),
+            @ApiResponse(responseCode = "200", description = "Page of contests",
+                    content = @Content(schema = @Schema(implementation = PageResponseDto.class))),
             @ApiResponse(responseCode = "404",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",
@@ -129,11 +129,9 @@ public class ContestController {
     @Operation(summary = "Register for contest")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success registration"),
-            @ApiResponse(responseCode = "400",
+            @ApiResponse(responseCode = "404",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "409",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "404",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
@@ -148,7 +146,7 @@ public class ContestController {
     @Operation(summary = "Get registered users of contest")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "List of users' ID",
-                    content = @Content(schema = @Schema(implementation = List.class))),
+                    content = @Content(schema = @Schema(implementation = PageResponseDto.class))),
             @ApiResponse(responseCode = "404",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",
@@ -163,7 +161,7 @@ public class ContestController {
     @GetMapping("/contest/{contestId}/problem/{problemId}")
     @Operation(summary = "Get problem description in contest")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Problem description in contest",
+            @ApiResponse(responseCode = "200", description = "Problem description",
                     content = @Content(schema = @Schema(implementation = ProblemResponseDto.class))),
             @ApiResponse(responseCode = "404",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
@@ -172,7 +170,6 @@ public class ContestController {
             @ApiResponse(responseCode = "500",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-
     public ResponseEntity<ProblemResponseDto> getContestsProblem(@PathVariable Integer contestId,
                                                                  @PathVariable Integer problemId) {
         return ResponseEntity.ok(contestService.getProblem(contestId, problemId));
@@ -180,16 +177,15 @@ public class ContestController {
 
 
     @GetMapping("/contest/{contestId}/problem/{problemId}/constraints")
-    @Operation(summary = "Get problem's constraints")
+    @Operation(summary = "Get problem constraints")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Problem's constraints",
+            @ApiResponse(responseCode = "200", description = "Constraints",
                     content = @Content(schema = @Schema(implementation = ProblemConstrainsResponseDto.class))),
             @ApiResponse(responseCode = "404",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-
     public ResponseEntity<ProblemConstrainsResponseDto> getProblemConstraints(@PathVariable Integer contestId,
                                                                               @PathVariable Integer problemId) {
         return ResponseEntity.ok(problemService.getProblemConstraints(contestId, problemId));

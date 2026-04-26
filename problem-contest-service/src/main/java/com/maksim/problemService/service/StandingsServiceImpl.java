@@ -11,7 +11,7 @@ import com.maksim.problemService.enums.Status;
 import com.maksim.problemService.entity.keys.ContestUserId;
 import com.maksim.problemService.entity.keys.ContestUserTaskId;
 import com.maksim.problemService.event.StandingsUpdateEvent;
-import com.maksim.problemService.exception.AccessDeniedException;
+import com.maksim.problemService.exception.ConflictException;
 import com.maksim.problemService.exception.ResourceNotFoundException;
 import com.maksim.problemService.repository.ContestRepository;
 import com.maksim.problemService.repository.associative.ContestUserRepository;
@@ -76,19 +76,17 @@ public class StandingsServiceImpl implements StandingsService {
             int userId = contestUser.getId().getUserId();
             int contestId = contestUser.getId().getContestId();
             int taskId = contestUserTask.getId().getTaskId();
-
             TaskProgressResponseDto taskDto = convertToDto(contestUserTask);
-
             cacheService.putUserTaskDetail(contestId, userId, taskId, taskDto);
             cacheService.putLeaderboardScore(contestId, userId, contestUser.getTotalScore());
-
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
             log.error("Failed to update redis cache");
+            throw ex;
         }
     }
 
 
-    private ContestUserTask createNewTask(ContestUserTaskId id, int contestId, int taskId) {
+    private ContestUserTask createNewTask(ContestUserTaskId id, Integer contestId, Integer taskId) {
         ContestUserTask newTask = new ContestUserTask(id);
         newTask.setProblem(problemRepository.getReferenceById(taskId));
         newTask.setContest(contestRepository.getReferenceById(contestId));
@@ -96,11 +94,11 @@ public class StandingsServiceImpl implements StandingsService {
     }
 
 
-    public PageResponseDto<UserProgressResponseDto> getLeaderboard(int contestId, int page, int pageSize) {
+    public PageResponseDto<UserProgressResponseDto> getLeaderboard(Integer contestId, Integer page, Integer pageSize) {
         Contest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Contest not found"));
         if (contest.getStartTime().isAfter(Instant.now())) {
-            throw new AccessDeniedException("The contest has not started");
+            throw new ConflictException("The contest has not started");
         }
         ensureCacheBuilt(contestId);
 
@@ -121,16 +119,11 @@ public class StandingsServiceImpl implements StandingsService {
         for (var tuple : leaders) {
             int userId = Integer.parseInt(tuple.getValue());
             int totalScore = tuple.getScore().intValue();
-
             Map<Integer, TaskProgressResponseDto> taskMap = cacheService.getUserTasksDetails(contestId, userId);
-
-            List<TaskProgressResponseDto> tasks = new ArrayList<>(taskMap.values());
-
-            UserProgressResponseDto dto = UserProgressResponseDto.of(userId, rank, tasks, totalScore);
+            UserProgressResponseDto dto = UserProgressResponseDto.of(userId, rank, new ArrayList<>(taskMap.values()), totalScore);
             result.add(dto);
             rank++;
         }
-
         return new PageResponseDto<>(
                 result,
                 page + 1,
@@ -143,7 +136,7 @@ public class StandingsServiceImpl implements StandingsService {
     public UserProgressResponseDto getUserStandings(Integer contestId, Integer userId) {
         ContestUser contestUser = getContestUser(contestId, userId);
         if (contestUser.getContest().getStartTime().isAfter(Instant.now())) {
-            throw new AccessDeniedException("The contest has not started");
+            throw new ConflictException("The contest has not started");
         }
         ensureCacheBuilt(contestId);
         Map<Integer, TaskProgressResponseDto> tasks = cacheService.getUserTasksDetails(contestId, userId);
@@ -161,7 +154,7 @@ public class StandingsServiceImpl implements StandingsService {
 
     private void rebuildCache(int contestId) {
         if (!contestRepository.existsById(contestId)) {
-            throw new ResourceNotFoundException("Contest not found: " + contestId);
+            throw new ResourceNotFoundException("Contest with ID " + contestId + " not found");
         }
 
         List<ContestUser> allContestants = cuRepository.findById_ContestId(contestId);
@@ -185,14 +178,13 @@ public class StandingsServiceImpl implements StandingsService {
             UserProgressResponseDto dto = UserProgressResponseDto.of(userId, 0, taskDtos, cu.getTotalScore());
             users.add(dto);
         }
-
         cacheService.rebuildFromDatabase(contestId, users);
     }
 
 
-    private ContestUser getContestUser(int contestId, int userId) {
+    private ContestUser getContestUser(Integer contestId, Integer userId) {
         return cuRepository.findById(new ContestUserId(userId, contestId)).
-                orElseThrow(() -> new ResourceNotFoundException("User not registered in this contest"));
+                orElseThrow(() -> new ResourceNotFoundException("User is not registered in this contest"));
     }
 
     private TaskProgressResponseDto convertToDto(ContestUserTask cut) {

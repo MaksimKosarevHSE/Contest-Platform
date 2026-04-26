@@ -15,8 +15,6 @@ public record UpdateContestDto(
         @Future
         Instant endTime,
 
-        Boolean isPublic,
-
         List<@Positive Integer> problemsId
 ) {
 }

@@ -143,7 +143,7 @@ public class ContestServiceImpl implements ContestService {
 
         ContestUserId contestUserId = new ContestUserId(userId, contestId);
         if (contestUserRepository.existsById(contestUserId))
-            throw new ConflictException("User already registered");
+            throw new ConflictException("User is already registered");
 
         ContestUser cu = new ContestUser();
         cu.setId(contestUserId);
