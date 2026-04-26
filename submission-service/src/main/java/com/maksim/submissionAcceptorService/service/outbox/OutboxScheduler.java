@@ -11,10 +11,10 @@ import org.springframework.stereotype.Component;
 public class OutboxScheduler {
     private final OutboxEventService outboxEventService;
 
-    @Scheduled(fixedDelay = 10000)
+    @Scheduled(fixedDelay = 3000)
     public void run(){
-        log.info("Outbox processing start");
+        log.info("Outbox processing starts");
         outboxEventService.publishEvents();
-        log.info("Outbox processing end");
+        log.info("Outbox processing ends");
     }
 }

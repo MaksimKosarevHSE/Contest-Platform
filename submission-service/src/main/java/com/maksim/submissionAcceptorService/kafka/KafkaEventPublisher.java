@@ -25,21 +25,10 @@ public class KafkaEventPublisher {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    private final ObjectMapper om = new ObjectMapper();
+    private final ObjectMapper om;
 
     @Value("${outbox.kafka.timeout:5}")
     private int kafkaTimeout;
-
-    public void send(String topic, Object payload) {
-        try {
-            ProducerRecord<String, Object> record = new ProducerRecord<>(topic, payload);
-            record.headers().add("event-id", UUID.randomUUID().toString().getBytes());
-            kafkaTemplate.send(record).get(kafkaTimeout, TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.error("Failed to send event to Kafka topic {}: {}", topic, e.getMessage());
-            throw new RuntimeException("Kafka send failed", e);
-        }
-    }
 
     public void processOutboxEvent(OutboxEvent outboxEvent) {
         SolutionSubmittedEvent event = om.readValue(outboxEvent.getPayload(), SolutionSubmittedEvent.class);
@@ -49,8 +38,8 @@ public class KafkaEventPublisher {
             record.headers().add("event-id", UUID.randomUUID().toString().getBytes());
             kafkaTemplate.send(record).get(kafkaTimeout, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.error("Failed to send event to Kafka topic");
-            throw new RuntimeException("Kafka send failed", e);
+            log.error("Failed to send event to Kafka topic {}: {}", outboxEvent.getEventType(), e.getMessage());
+            throw new RuntimeException("Kafka sending failed", e);
         }
     }
 }

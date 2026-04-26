@@ -158,7 +158,8 @@ public class SubmissionServiceImpl implements SubmissionService {
             }
             return solution.sourceCode();
         } catch (IOException ex) {
-            throw new RuntimeException("Error while extracting source code");
+            log.error("Error extracting source code");
+            throw new RuntimeException("Error extracting source code");
         }
     }
 

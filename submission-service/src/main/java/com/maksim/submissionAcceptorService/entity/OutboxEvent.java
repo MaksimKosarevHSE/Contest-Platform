@@ -7,8 +7,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "outbox_event")
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

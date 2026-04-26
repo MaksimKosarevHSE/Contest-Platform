@@ -1,18 +1,15 @@
 package com.maksim.submissionAcceptorService.service.outbox;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maksim.submissionAcceptorService.entity.OutboxEvent;
 import com.maksim.submissionAcceptorService.kafka.KafkaEventPublisher;
 import com.maksim.submissionAcceptorService.repository.OutboxEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
-import java.time.LocalDateTime;
 
 @Slf4j
 @Service
@@ -23,7 +20,7 @@ public class OutboxEventService {
 
     private final KafkaEventPublisher kafkaEventPublisher;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public void publishEvents() {
@@ -36,21 +33,17 @@ public class OutboxEventService {
         try {
             kafkaEventPublisher.processOutboxEvent(outboxEvent);
             outboxEventRepository.delete(outboxEvent);
-        } catch (Exception e){
-            log.warn("Failed to process event {}", outboxEvent.getEventId());
+        } catch (Exception e) {
+            log.error("Failed to process event {}", outboxEvent.getEventId());
         }
     }
 
     public void save(String topic, Object payload) {
-        try {
-            String payloadJson = objectMapper.writeValueAsString(payload);
-            OutboxEvent event = OutboxEvent.builder()
-                    .eventType(topic)
-                    .payload(payloadJson)
-                    .build();
-            outboxEventRepository.save(event);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        String payloadJson = objectMapper.writeValueAsString(payload);
+        OutboxEvent event = OutboxEvent.builder()
+                .eventType(topic)
+                .payload(payloadJson)
+                .build();
+        outboxEventRepository.save(event);
     }
 }

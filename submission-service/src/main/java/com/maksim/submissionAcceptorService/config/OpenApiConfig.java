@@ -12,7 +12,7 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("Submission Service API")
-                        .description("Микросервис для приема и хранения посылок")
+                        .description("Microservice for receiving and storing submissions")
                         .version("1.0.0"));
     }
 }
