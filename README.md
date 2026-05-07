@@ -78,6 +78,11 @@ mvn -s .mvn/settings.xml -B clean package -DskipTests
 docker compose -f docker-compose-dev.yaml up --build
 ```
 
+## Swagger UI
+- [Auth Service](http://localhost:8003/swagger-ui.html)
+- [Problem Service](http://localhost:8000/swagger-ui.html)
+- [Submission Service](http://localhost:8001/swagger-ui.html)
+
 ## Ближайшие апдейты
 - Дополнить функционал
 - Покрыть сервисы тестами
