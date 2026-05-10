@@ -2,14 +2,15 @@ package com.maksim.problemService.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.grpc.client.GrpcChannelFactory;
 import tools.jackson.databind.ObjectMapper;
+import com.maksim.rpc.JudgingRpcServiceGrpc;
 
 @Configuration
 public class AppConfig {
     @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
+    public JudgingRpcServiceGrpc.JudgingRpcServiceBlockingStub judgingRpcServiceBlockingStub(GrpcChannelFactory channelFactory) {
+        return JudgingRpcServiceGrpc.newBlockingStub(channelFactory.createChannel("judging"));
     }
 
     @Bean

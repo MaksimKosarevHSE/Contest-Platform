@@ -1,43 +1,49 @@
 package com.maksim.submissionAcceptorService.client;
 
+import com.google.protobuf.Int32Value;
+import com.google.protobuf.util.Timestamps;
 import com.maksim.common.dto.problem.ProblemConstrainsResponseDto;
+import com.maksim.rpc.ProblemConstraintsRequest;
+import com.maksim.rpc.ProblemConstraintsResponse;
+import com.maksim.rpc.ProblemRpcServiceGrpc;
 import com.maksim.submissionAcceptorService.exception.ResourceNotFoundException;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 
-import java.text.MessageFormat;
+import java.time.Instant;
 
 @Component
 @RequiredArgsConstructor
 public class ProblemServiceClient {
 
-    @Value("${problem.service.url}")
-    private String problemServiceUrl;
-
-    private final RestTemplate restTemplate;
+    private final ProblemRpcServiceGrpc.ProblemRpcServiceBlockingStub problemRpcServiceBlockingStub;
 
 
     public ProblemConstrainsResponseDto getProblemConstraints(Integer problemId, Integer contestId) {
-        String url;
-        if (contestId == null) {
-            url = MessageFormat.format("{0}/api/problem/{1}/constraints", problemServiceUrl, problemId);
-        } else {
-            url = MessageFormat.format("{0}/api/contest/{1}/problem/{2}/constraints", problemServiceUrl, contestId, problemId);
-        }
-
         try {
-            ResponseEntity<ProblemConstrainsResponseDto> response = restTemplate.getForEntity(
-                    url, ProblemConstrainsResponseDto.class);
-            if (response.getBody() == null) {
-                throw new IllegalStateException("Problem service returned an empty response body");
+            ProblemConstraintsRequest.Builder request = ProblemConstraintsRequest.newBuilder()
+                    .setProblemId(problemId);
+            if (contestId != null) {
+                request.setContestId(Int32Value.of(contestId));
             }
-            return response.getBody();
-        } catch (HttpClientErrorException.NotFound e) {
-            throw new ResourceNotFoundException("Problem with id " + problemId + " is not found");
+
+            ProblemConstraintsResponse response = problemRpcServiceBlockingStub.getProblemConstraints(request.build());
+            return new ProblemConstrainsResponseDto(
+                    response.getId(),
+                    response.getCompileTimeLimit(),
+                    response.getTimeLimit(),
+                    response.getMemoryLimit(),
+                    response.hasContestId() ? response.getContestId().getValue() : null,
+                    response.hasContestStartTime() ? Instant.ofEpochMilli(Timestamps.toMillis(response.getContestStartTime())) : null,
+                    response.hasContestEndTime() ? Instant.ofEpochMilli(Timestamps.toMillis(response.getContestEndTime())) : null
+            );
+        } catch (StatusRuntimeException e) {
+            if (e.getStatus().getCode() == Status.Code.NOT_FOUND) {
+                throw new ResourceNotFoundException("Problem with id " + problemId + " is not found");
+            }
+            throw new IllegalStateException("Failed to fetch problem constraints", e);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to fetch problem constraints", e);
         }

@@ -13,19 +13,27 @@
     <name>Contest-platform</name>
 
     <properties>
+        <grpc.version>1.77.1</grpc.version>
+        <grpc.protobuf.maven.plugin.version>0.6.1</grpc.protobuf.maven.plugin.version>
         <java.version>21</java.version>
+        <protobuf.version>4.30.2</protobuf.version>
+        <protoc.gen.grpc.java.version>${grpc.version}</protoc.gen.grpc.java.version>
         <spring-boot.version>4.0.2</spring-boot.version>
+        <spring-cloud.version>2025.1.1</spring-cloud.version>
+        <spring-grpc.version>1.0.3</spring-grpc.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <springdoc.version>3.0.2</springdoc.version>
         <jjwt.version>0.12.6</jjwt.version>
         <jackson.databind.version>3.0.3</jackson.databind.version>
         <maven.compiler.plugin.version>3.14.0</maven.compiler.plugin.version>
+        <lombok.version>1.18.38</lombok.version>
         <skipTests>true</skipTests>
     </properties>
 
     <modules>
         <module>parent</module>
         <module>common</module>
+        <module>rpc-services</module>
         <module>auth-service</module>
         <module>gateway</module>
         <module>judging-service</module>

@@ -1,6 +1,9 @@
 package com.maksim.gateway.filter;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.maksim.rpc.AuthRpcServiceGrpc;
+import com.maksim.rpc.ValidateTokenRequest;
+import com.maksim.rpc.ValidateTokenResponse;
+import io.grpc.StatusRuntimeException;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -9,20 +12,20 @@ import org.springframework.http.*;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 
 @Component
 public class AuthFilter implements GlobalFilter, Ordered {
-    private final WebClient authServiceWebClient;
 
-    public AuthFilter(@Value("${auth.service.url}") String url) {
-        this.authServiceWebClient = WebClient.builder()
-                .baseUrl(url)
-                .build();
+    private final AuthRpcServiceGrpc.AuthRpcServiceBlockingStub authRpcServiceBlockingStub;
+
+    public AuthFilter(AuthRpcServiceGrpc.AuthRpcServiceBlockingStub authRpcServiceBlockingStub) {
+        this.authRpcServiceBlockingStub = authRpcServiceBlockingStub;
     }
 
     @Override
@@ -44,8 +47,8 @@ public class AuthFilter implements GlobalFilter, Ordered {
         return validateToken(token)
                 .flatMap(response -> {
                     ServerHttpRequest mutatedRequest = request.mutate()
-                            .header("X-User-Id", response.id().toString())
-                            .header("X-User-Handle", response.handle())
+                            .header("X-User-Id", Integer.toString(response.getUserId()))
+                            .header("X-User-Handle", response.getHandle())
                             .build();
                     ServerWebExchange mutatedExchange = exchange.mutate()
                             .request(mutatedRequest)
@@ -55,20 +58,13 @@ public class AuthFilter implements GlobalFilter, Ordered {
                 .onErrorResume(e -> onError(exchange));
     }
 
-    private Mono<ValidateResponse> validateToken(String token) {
-        ValidateRequest request = new ValidateRequest(token);
-        return authServiceWebClient
-                .post()
-                .uri("/api/auth/validate")
-                .bodyValue(request)
-                .retrieve()
-                .onStatus(HttpStatusCode::is4xxClientError, response ->
-                        {
-                            return Mono.error(new RuntimeException());
-                        }
-                )
-                .bodyToMono(ValidateResponse.class)
-                .timeout(java.time.Duration.ofSeconds(3));
+    private Mono<ValidateTokenResponse> validateToken(String token) {
+        return Mono.fromCallable(() -> authRpcServiceBlockingStub.validateToken(
+                        ValidateTokenRequest.newBuilder()
+                                .setToken(token)
+                                .build()))
+                .subscribeOn(Schedulers.boundedElastic())
+                .onErrorMap(StatusRuntimeException.class, ex -> new RuntimeException(ex));
     }
 
     private Mono<Void> onError(ServerWebExchange exchange) {

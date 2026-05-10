@@ -175,21 +175,4 @@ public class ContestController {
                                                                  @PathVariable Integer problemId) {
         return ResponseEntity.ok(contestService.getProblem(contestId, problemId));
     }
-
-
-    @GetMapping("/contest/{contestId}/problem/{problemId}/constraints")
-    @Operation(summary = "Get problem constraints")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Constraints",
-                    content = @Content(schema = @Schema(implementation = ProblemConstrainsResponseDto.class))),
-            @ApiResponse(responseCode = "404",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "500",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-    })
-    public ResponseEntity<ProblemConstrainsResponseDto> getProblemConstraints(@PathVariable Integer contestId,
-                                                                              @PathVariable Integer problemId) {
-        return ResponseEntity.ok(problemService.getProblemConstraints(contestId, problemId));
-    }
-
 }

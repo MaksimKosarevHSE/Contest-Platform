@@ -1,4 +1,10 @@
 package com.maksim.auth_service.dto;
 
-public record ValidateRequest(String token) {
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Request for token validation")
+public record ValidateRequest(
+        @Schema(description = "JWT token to validate")
+        String token
+) {
 }

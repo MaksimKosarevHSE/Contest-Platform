@@ -147,19 +147,4 @@ public class ProblemSetController {
         problemService.deleteProblem(id, userId);
         return ResponseEntity.noContent().build();
     }
-
-
-    @GetMapping("/problem/{problemId}/constraints")
-    @Operation(summary = "Get problems constraints")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Constraints",
-                    content = @Content(schema = @Schema(implementation = ProblemConstrainsResponseDto.class))),
-            @ApiResponse(responseCode = "404",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "500",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-    })
-    public ResponseEntity<ProblemConstrainsResponseDto> getProblemConstraints(@PathVariable Integer problemId) {
-        return ResponseEntity.ok(problemService.getProblemConstraints(null, problemId));
-    }
 }

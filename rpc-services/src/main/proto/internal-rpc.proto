@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package contest.internal.rpc;
+
+option java_multiple_files = true;
+option java_package = "com.maksim.rpc";
+option java_outer_classname = "InternalRpcProto";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+service AuthRpcService {
+  rpc ValidateToken (ValidateTokenRequest) returns (ValidateTokenResponse);
+}
+
+service ProblemRpcService {
+  rpc GetProblemConstraints (ProblemConstraintsRequest) returns (ProblemConstraintsResponse);
+}
+
+service JudgingRpcService {
+  rpc SaveTestCases (SaveTestCasesRequest) returns (google.protobuf.Empty);
+}
+
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message ValidateTokenResponse {
+  int32 user_id = 1;
+  string handle = 2;
+}
+
+message ProblemConstraintsRequest {
+  int32 problem_id = 1;
+  google.protobuf.Int32Value contest_id = 2;
+}
+
+message ProblemConstraintsResponse {
+  int32 id = 1;
+  int32 compile_time_limit = 2;
+  int32 time_limit = 3;
+  int32 memory_limit = 4;
+  google.protobuf.Int32Value contest_id = 5;
+  google.protobuf.Timestamp contest_start_time = 6;
+  google.protobuf.Timestamp contest_end_time = 7;
+}
+
+enum CheckerTypeRpc {
+  CHECKER_TYPE_RPC_UNSPECIFIED = 0;
+  DEFAULT_EXACT_MATCH_CHECKER = 1;
+  CUSTOM_CHECKER = 2;
+}
+
+enum ProgrammingLanguageRpc {
+  PROGRAMMING_LANGUAGE_RPC_UNSPECIFIED = 0;
+  JAVA = 1;
+  CPP = 2;
+}
+
+message SaveTestCasesRequest {
+  int32 problem_id = 1;
+  repeated bytes test_files_content = 2;
+  repeated string test_files_names = 3;
+  int32 count_of_test_cases = 4;
+  CheckerTypeRpc checker_type = 5;
+  ProgrammingLanguageRpc checker_language = 6;
+  bytes checker_source_code = 7;
+}
