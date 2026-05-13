@@ -25,7 +25,7 @@ services:
       SERVER_PORT: 8003
       GRPC_SERVER_PORT: 9003
       JWT_SECRET: kalsdjflasfjdljflaskdjflkasjdflkajsdlfkjasldkfjlaskdjflkasdjf'
-      JWT_EXPIRATION_MILLIS: 100
+      JWT_EXPIRATION_MILLIS: 1800000
       REFRESH_EXPIRATION_MILLIS: 2322323
       BCRYPT_ROUNDS: 10
       SPRING_DATASOURCE_URL: jdbc:postgresql://db-auth-service:5432/postgres
