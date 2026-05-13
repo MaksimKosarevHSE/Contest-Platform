@@ -9,33 +9,33 @@ spring:
       channels:
         auth:
           address: ${AUTH_SERVICE_GRPC_ADDRESS:localhost:9003}
-  servlet:
-    multipart:
-      enabled: true
   cloud:
     gateway:
-      routes:
-        - id: auth-service
-          uri: http://auth-service:8003
-          predicates:
-            - Path=/api/auth/**
+      server:
+        webflux:
+          routes:
+            - id: auth-service
+              uri: http://auth-service:8003
+              predicates:
+                - Path=/api/auth/**
+            - id: problem-contest-service
+              uri: http://problem-service:8000
+              predicates:
+                - Path=/api/problem/**,/api/problems/**,/api/contests/**,/api/contest/**,/api/problem/**,
+            - id: submission-service
+              uri: http://submission-service:8001
+              predicates:
+                - Path=/api/sub/**,/ws/**
 
-        - id: problem-contest-service
-          uri: http://problem-service:8000
-          predicates:
-            - Path=/api/contests/**,/api/contest/**,/api/problem/**,/api/problems/**,
-
-        - id: submission-service
-          uri: http://submission-service:8001
-          predicates:
-            - Path=/api/sub/**,/ws/**
-
-      default-filters:
-        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
-      globalcors:
-        add-to-simple-url-handler-mapping: true
-        cors-configurations:
-          '[/**]':
-            allowedOrigins: [ "*" ]
-            allowedMethods: [ GET, POST, OPTIONS, PUT, DELETE ]
-            allowedHeaders: [ "*" ]
+          default-filters:
+            - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: [ "*" ]
+                allowedMethods: [ GET, POST, OPTIONS, PUT, DELETE ]
+                allowedHeaders: [ "*" ]
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG

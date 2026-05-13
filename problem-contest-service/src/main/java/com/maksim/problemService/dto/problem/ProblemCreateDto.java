@@ -19,7 +19,7 @@ public record ProblemCreateDto(
         String title,
 
         @Schema(description = "Can this problem be displayed in public problem set?")
-        @NotNull
+        @NotNull(message = "Public visibility flag is required")
         Boolean isPublic,
 
         @Schema(description = "Problem statement")
@@ -40,6 +40,7 @@ public record ProblemCreateDto(
         String notes,
 
         @Schema(description = "Count of samples")
+        @NotNull(message = "Samples count is required")
         @Min(value = 0, message = "Samples count must be not negative")
         @Max(value = 15, message = "Samples count must be less than 15")
         Integer samplesCount,
@@ -51,24 +52,28 @@ public record ProblemCreateDto(
         List<String> sampleOutput,
 
         @Schema(description = "Estimated by you complexity of this problem")
+        @NotNull(message = "Complexity is required")
         @Min(value = 1, message = "Complexity must be greater than 0 and less than 11")
         @Max(value = 10, message = "Complexity must be greater than 0 and less than 11")
         Integer complexity,
 
         @Schema(description = "Compile time limit in ms")
+        @NotNull(message = "Compile time limit is required")
         @Positive @Max(value = 10000)
         Double compileTimeLimit,
 
         @Schema(description = "Time limit in ms")
+        @NotNull(message = "Time limit is required")
         @Positive @Max(value = 10000)
         Double timeLimit,
 
         @Schema(description = "Memory limit for solutions")
+        @NotNull(message = "Memory limit is required")
         @Positive @Max(value = 1048576)
         Double memoryLimit,
 
         @Schema(description = "Type of checker program")
-        @NotNull
+        @NotNull(message = "Checker type is required")
         CheckerType checkerType,
 
         @Schema(description = "Language of custom checker (source code language)")
@@ -78,13 +83,16 @@ public record ProblemCreateDto(
         MultipartFile fileSourceChecker,
 
         @Schema(description = "Number of tests")
+        @NotNull(message = "Number of tests is required")
         @Positive
         Integer testCasesNum,
 
         @Schema(description = "Input for test in files. This files must be numbered from 1.in to N.in, where N is number of test cases")
+        @NotNull(message = "Input test files are required")
         List<MultipartFile> inputTestCases,
 
         @Schema(description = "Output for test in files. This files must be numbered from 1.out to N.out, where N is number of test cases")
+        @NotNull(message = "Output test files are required")
         List<MultipartFile> outputTestCases
 ) {
     public SaveTestCasesRequestDto toSaveTestCasesRequestDto() {

@@ -30,8 +30,6 @@ public class ContestController {
 
     private final ContestService contestService;
 
-    private final ProblemService problemService;
-
     @PostMapping("/contest")
     @Operation(summary = "Create contest")
     @ApiResponses(value = {
