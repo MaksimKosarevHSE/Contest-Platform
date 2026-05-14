@@ -21,6 +21,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -41,6 +43,8 @@ public class StandingsServiceImpl implements StandingsService {
     private final ContestRepository contestRepository;
 
     private final StandingsCacheService cacheService;
+
+    private final Object standingsCacheMonitor = new Object();
 
     @Transactional
     public void handleUpdateEvent(StandingsUpdateEvent event) {
@@ -68,20 +72,41 @@ public class StandingsServiceImpl implements StandingsService {
 
         cutRepository.save(cut);
         cuRepository.save(cu);
-        updateCache(cu, cut);
+        updateCacheAfterCommit(cu, cut);
     }
 
-    private void updateCache(ContestUser contestUser, ContestUserTask contestUserTask) {
-        try {
-            int userId = contestUser.getId().getUserId();
-            int contestId = contestUser.getId().getContestId();
-            int taskId = contestUserTask.getId().getTaskId();
-            TaskProgressResponseDto taskDto = convertToDto(contestUserTask);
-            cacheService.putUserTaskDetail(contestId, userId, taskId, taskDto);
-            cacheService.putLeaderboardScore(contestId, userId, contestUser.getTotalScore());
-        } catch (RuntimeException ex) {
-            log.error("Failed to update redis cache");
-            throw ex;
+    private void updateCacheAfterCommit(ContestUser contestUser, ContestUserTask contestUserTask) {
+        int userId = contestUser.getId().getUserId();
+        int contestId = contestUser.getId().getContestId();
+        int taskId = contestUserTask.getId().getTaskId();
+        int totalScore = contestUser.getTotalScore();
+        TaskProgressResponseDto taskDto = convertToDto(contestUserTask);
+
+        Runnable cacheUpdate = () -> updateCache(contestId, userId, taskId, totalScore, taskDto);
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            cacheUpdate.run();
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                cacheUpdate.run();
+            }
+        });
+    }
+
+    private void updateCache(int contestId, int userId, int taskId, int totalScore, TaskProgressResponseDto taskDto) {
+        synchronized (standingsCacheMonitor) {
+            try {
+                if (!cacheService.existsLeaderboard(contestId)) {
+                    return;
+                }
+                cacheService.putUserTaskDetail(contestId, userId, taskId, taskDto);
+                cacheService.putLeaderboardScore(contestId, userId, totalScore);
+            } catch (RuntimeException ex) {
+                log.error("Failed to update redis cache for contest {}, user {}", contestId, userId, ex);
+            }
         }
     }
 
@@ -90,6 +115,9 @@ public class StandingsServiceImpl implements StandingsService {
         ContestUserTask newTask = new ContestUserTask(id);
         newTask.setProblem(problemRepository.getReferenceById(taskId));
         newTask.setContest(contestRepository.getReferenceById(contestId));
+        newTask.setSolved(false);
+        newTask.setAttempts(0);
+        newTask.setScore(0);
         return newTask;
     }
 
@@ -100,37 +128,39 @@ public class StandingsServiceImpl implements StandingsService {
         if (contest.getStartTime().isAfter(Instant.now())) {
             throw new ConflictException("The contest has not started");
         }
-        ensureCacheBuilt(contestId);
+        synchronized (standingsCacheMonitor) {
+            ensureCacheBuilt(contestId);
 
-        page--;
-        int start = pageSize * page;
-        int end = start + pageSize - 1;
+            page--;
+            int start = pageSize * page;
+            int end = start + pageSize - 1;
 
-        var leaders = cacheService.getLeaderboardRange(contestId, start, end);
-        Long totalElements = cacheService.getLeaderboardTotalSize(contestId);
+            var leaders = cacheService.getLeaderboardRange(contestId, start, end);
+            Long totalElements = cacheService.getLeaderboardTotalSize(contestId);
 
-        if (leaders == null || leaders.isEmpty()) {
-            return PageResponseDto.emptyPage();
+            if (leaders == null || leaders.isEmpty()) {
+                return PageResponseDto.emptyPage();
+            }
+
+            List<UserProgressResponseDto> result = new ArrayList<>(leaders.size());
+            int rank = start + 1;
+
+            for (var tuple : leaders) {
+                int userId = Integer.parseInt(tuple.getValue());
+                int totalScore = tuple.getScore().intValue();
+                Map<Integer, TaskProgressResponseDto> taskMap = cacheService.getUserTasksDetails(contestId, userId);
+                UserProgressResponseDto dto = UserProgressResponseDto.of(userId, rank, new ArrayList<>(taskMap.values()), totalScore);
+                result.add(dto);
+                rank++;
+            }
+            return new PageResponseDto<>(
+                    result,
+                    page + 1,
+                    pageSize,
+                    totalElements,
+                    Long.valueOf((totalElements + (pageSize - 1)) / pageSize).intValue()
+            );
         }
-
-        List<UserProgressResponseDto> result = new ArrayList<>(leaders.size());
-        int rank = start + 1;
-
-        for (var tuple : leaders) {
-            int userId = Integer.parseInt(tuple.getValue());
-            int totalScore = tuple.getScore().intValue();
-            Map<Integer, TaskProgressResponseDto> taskMap = cacheService.getUserTasksDetails(contestId, userId);
-            UserProgressResponseDto dto = UserProgressResponseDto.of(userId, rank, new ArrayList<>(taskMap.values()), totalScore);
-            result.add(dto);
-            rank++;
-        }
-        return new PageResponseDto<>(
-                result,
-                page + 1,
-                pageSize,
-                totalElements,
-                Long.valueOf((totalElements + (pageSize - 1)) / pageSize).intValue()
-        );
     }
 
     public UserProgressResponseDto getUserStandings(Integer contestId, Integer userId) {
@@ -138,11 +168,13 @@ public class StandingsServiceImpl implements StandingsService {
         if (contestUser.getContest().getStartTime().isAfter(Instant.now())) {
             throw new ConflictException("The contest has not started");
         }
-        ensureCacheBuilt(contestId);
-        Map<Integer, TaskProgressResponseDto> tasks = cacheService.getUserTasksDetails(contestId, userId);
-        Integer rank = cacheService.getUserRank(contestId, userId);
-        Integer totalScore = cacheService.getUserScore(contestId, userId);
-        return UserProgressResponseDto.of(userId, rank, new ArrayList<>(tasks.values()), totalScore);
+        synchronized (standingsCacheMonitor) {
+            ensureCacheBuilt(contestId);
+            Map<Integer, TaskProgressResponseDto> tasks = cacheService.getUserTasksDetails(contestId, userId);
+            Integer rank = cacheService.getUserRank(contestId, userId);
+            Integer totalScore = cacheService.getUserScore(contestId, userId);
+            return UserProgressResponseDto.of(userId, rank, new ArrayList<>(tasks.values()), totalScore);
+        }
     }
 
     private void ensureCacheBuilt(int contestId) {

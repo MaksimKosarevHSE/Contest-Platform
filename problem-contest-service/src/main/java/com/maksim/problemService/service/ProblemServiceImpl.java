@@ -20,11 +20,14 @@ import com.maksim.problemService.entity.Problem;
 import com.maksim.problemService.repository.ProblemRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -68,7 +71,12 @@ public class ProblemServiceImpl implements ProblemService {
         if (contestProblemRepository.existsByProblemId(id)) {
             throw new BadRequestException("Problem is used in contests, can't delete");
         }
-        problemRepository.delete(problem);
+        try {
+            problemRepository.delete(problem);
+            problemRepository.flush();
+        } catch (DataIntegrityViolationException ex) {
+            throw new BadRequestException("Problem is used in contests, can't delete");
+        }
     }
 
     public PageResponseDto<ProblemSignatureResponseDto> getPublicProblemsSignatures(Integer pageNumber, Integer pageSize) {
@@ -115,7 +123,7 @@ public class ProblemServiceImpl implements ProblemService {
     private Problem getOwnedProblem(Integer problemId, Integer userId) {
         Problem problem = problemRepository.findById(problemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Problem not found"));
-        if (problem.getCreatorId() != userId) {
+        if (!Objects.equals(problem.getCreatorId(), userId)) {
             throw new ForbiddenException("Only author can manage problem");
         }
         return problem;

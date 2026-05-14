@@ -37,6 +37,7 @@ public class KafkaConfig {
     public ConcurrentKafkaListenerContainerFactory<String, StandingsUpdateEvent> concurrentKafkaListenerContainerFactory() {
         var factory = new ConcurrentKafkaListenerContainerFactory<String, StandingsUpdateEvent>();
         factory.setConsumerFactory(consumerFactory());
+        factory.setConcurrency(1);
         return factory;
     }
 }

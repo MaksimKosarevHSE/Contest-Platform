@@ -1,7 +1,7 @@
 package com.maksim.problemService.kafka;
 
-import com.maksim.problemService.entity.ProcessedEvent;
 import com.maksim.common.event.StandingsUpdateEvent;
+import com.maksim.problemService.entity.ProcessedEvent;
 import com.maksim.problemService.repository.ProcessedEventRepository;
 import com.maksim.problemService.service.StandingsService;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +10,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -23,8 +24,9 @@ public class StandingsEventListener {
     private final ProcessedEventRepository processedEventRepository;
 
     @KafkaListener(topics = "standings-update-event-topic", containerFactory = "factory1")
+    @Transactional
     public void handleStandingsUpdate(@Payload StandingsUpdateEvent event,
-                                      @Header(value = "event-id") UUID eventId) {
+                                       @Header(value = "event-id") UUID eventId) {
         if (processedEventRepository.existsByEventId(eventId)) {
             log.info("Duplicate standings update event with id {}", eventId);
             return;

@@ -86,7 +86,7 @@ ALTER TABLE contest_problem
     ADD CONSTRAINT fk_contest_problem_problem
         FOREIGN KEY (problem_id)
             REFERENCES problems(id)
-            ON DELETE CASCADE
+            ON DELETE RESTRICT
             ON UPDATE CASCADE;
 
 -- contest_user -> contests
@@ -110,5 +110,5 @@ ALTER TABLE contest_user_task
     ADD CONSTRAINT fk_contest_user_task_problem
         FOREIGN KEY (task_id)
             REFERENCES problems(id)
-            ON DELETE CASCADE
+            ON DELETE RESTRICT
             ON UPDATE CASCADE;

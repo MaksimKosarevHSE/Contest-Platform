@@ -9,7 +9,6 @@ import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
-import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -22,7 +21,7 @@ public class StandingsCacheServiceImpl implements StandingsCacheService {
 
     private static final String USER_DETAILS_PREFIX = "contest:details:";
 
-    private static final Duration CACHE_TTL = Duration.ofHours(1);
+    private static final String CACHE_READY_PREFIX = "contest:leaderboard-ready:";
 
     private final StringRedisTemplate redisTemplate;
 
@@ -32,12 +31,20 @@ public class StandingsCacheServiceImpl implements StandingsCacheService {
         return LEADERBOARD_PREFIX + contestId;
     }
 
+    private String cacheReadyKey(int contestId) {
+        return CACHE_READY_PREFIX + contestId;
+    }
+
     private String userDetailsKey(int contestId, int userId) {
         return USER_DETAILS_PREFIX + contestId + ":user:" + userId;
     }
 
+    private String userDetailsPattern(int contestId) {
+        return USER_DETAILS_PREFIX + contestId + ":user:*";
+    }
+
     public boolean existsLeaderboard(int contestId) {
-        return redisTemplate.hasKey(leaderboardKey(contestId));
+        return Boolean.TRUE.equals(redisTemplate.hasKey(cacheReadyKey(contestId)));
     }
 
     public void putLeaderboardScore(int contestId, int userId, int totalScore) {
@@ -67,10 +74,7 @@ public class StandingsCacheServiceImpl implements StandingsCacheService {
 
     public void putUserTaskDetail(int contestId, int userId, int taskId, TaskProgressResponseDto taskDetail) {
         String taskJson = objectMapper.writeValueAsString(taskDetail);
-        String key = userDetailsKey(contestId, userId);
-        redisTemplate.opsForHash().put(key, String.valueOf(taskId), taskJson);
-        redisTemplate.expire(key, CACHE_TTL);
-
+        redisTemplate.opsForHash().put(userDetailsKey(contestId, userId), String.valueOf(taskId), taskJson);
     }
 
     public Map<Integer, TaskProgressResponseDto> getUserTasksDetails(int contestId, int userId) {
@@ -91,9 +95,15 @@ public class StandingsCacheServiceImpl implements StandingsCacheService {
         redisTemplate.delete(leaderboardKey(contestId));
     }
 
+    private void evictContest(int contestId) {
+        redisTemplate.delete(cacheReadyKey(contestId));
+        deleteLeaderboard(contestId);
+        deleteUserDetails(contestId);
+    }
+
     public void rebuildFromDatabase(int contestId, List<UserProgressResponseDto> users) {
         String leaderboardKey = leaderboardKey(contestId);
-        deleteLeaderboard(contestId);
+        evictContest(contestId);
 
         for (UserProgressResponseDto user : users) {
             redisTemplate.opsForZSet().add(leaderboardKey, String.valueOf(user.userId()), user.score());
@@ -106,8 +116,15 @@ public class StandingsCacheServiceImpl implements StandingsCacheService {
                     ));
             if (!taskMap.isEmpty()) {
                 redisTemplate.opsForHash().putAll(userKey, taskMap);
-                redisTemplate.expire(userKey, CACHE_TTL);
             }
+        }
+        redisTemplate.opsForValue().set(cacheReadyKey(contestId), "1");
+    }
+
+    private void deleteUserDetails(int contestId) {
+        Set<String> keys = redisTemplate.keys(userDetailsPattern(contestId));
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
         }
     }
 }

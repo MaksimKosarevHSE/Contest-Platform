@@ -47,7 +47,7 @@ public class ContestUserTask {
     }
 
     public void incAttempts() {
-        attempts++;
+        attempts = attempts == null ? 1 : attempts + 1;
     }
 
 
