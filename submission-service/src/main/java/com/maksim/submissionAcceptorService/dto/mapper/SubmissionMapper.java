@@ -24,15 +24,13 @@ public interface SubmissionMapper {
     SolutionSubmittedEvent toSolutionSubmittedEvent(Submission s);
 
 
+    @Mapping(target = "submissionId", source = "id")
     @Mapping(target = "submissionTime", source = "time")
     StandingsUpdateEvent toStandingsUpdateEvent(Submission s);
 
     SubmissionDetailsResponseDto toSubmissionDetailsResponseDto(Submission s);
 
     SubmissionResponseDto toSubmissionResponseDto(Submission s);
-
-    @Mapping(target = "usedMemory", source = "memory")
-    void updateFromEvent(@MappingTarget Submission s, SolutionJudgedEvent ev);
 
     @Mapping(target = "compilationTimeLimit", source = "compileTimeLimit")
     void updateSolutionEventFromConstraints(@MappingTarget SolutionSubmittedEvent ev, ProblemConstrainsResponseDto c);

@@ -55,6 +55,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Transactional
     public SubmissionResponseDto submitSolution(Integer problemId, Integer contestId, Integer userId, SubmissionCreateDto solution) {
         Instant submissionTime = Instant.now();
+        // TODO: вынести из транзакции
         ProblemConstrainsResponseDto constraints = problemServiceClient.getProblemConstraints(problemId, contestId);
 
         boolean isUpsolving = contestId != null && submissionTime.isAfter(constraints.getContestEndTime());
@@ -117,20 +118,39 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Transactional
     public void processJudgedSolution(SolutionJudgedEvent event) {
-        Submission submission = submissionRepository.findById(event.getSubmissionId())
-                .orElseThrow(() -> new ResourceNotFoundException("Can't process event"));
-
-        if (event.getStatus() == submission.getStatus()) {
-            return; // Идемпотентность
+        if (!isFinalStatus(event.getStatus())) {
+            return;
         }
 
-        submissionMapper.updateFromEvent(submission, event);
-        submissionRepository.save(submission);
+        int updatedRows = submissionRepository.updateFinalResultIfStatus(
+                event.getSubmissionId(),
+                event.getStatus(),
+                event.getExecutionTime(),
+                event.getMemory(),
+                event.getTestNum(),
+                event.getCheckerMessage(),
+                Status.IN_QUEUE
+        );
+        submissionProgressCacheService.clearCachedTestNum(event.getSubmissionId());
+
+        if (updatedRows == 0) {
+            if (!submissionRepository.existsById(event.getSubmissionId())) {
+                throw new ResourceNotFoundException("Can't process event");
+            }
+            return;
+        }
+
+        Submission submission = submissionRepository.findById(event.getSubmissionId())
+                .orElseThrow(() -> new ResourceNotFoundException("Can't process event"));
 
         if (submission.getContestId() != null && !submission.getIsUpsolving()) {
             StandingsUpdateEvent standingsUpdateEvent = submissionMapper.toStandingsUpdateEvent(submission);
             outboxEventService.save(standingsUpdateTopicName, standingsUpdateEvent);
         }
+    }
+
+    private boolean isFinalStatus(Status status) {
+        return status != Status.IN_QUEUE && status != Status.TESTING;
     }
 
     private void wrapWithJudgingProgress(SubmissionResponseDto response) {

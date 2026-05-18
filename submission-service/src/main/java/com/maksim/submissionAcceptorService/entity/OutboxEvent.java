@@ -2,6 +2,8 @@ package com.maksim.submissionAcceptorService.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -23,4 +25,7 @@ public class OutboxEvent {
 
     @Column(name = "payload")
     private String payload;
+
+    @Column(name = "created_at")
+    private Instant createdAt;
 }

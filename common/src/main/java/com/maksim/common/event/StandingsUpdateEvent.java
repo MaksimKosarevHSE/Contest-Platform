@@ -13,6 +13,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StandingsUpdateEvent {
+    private Long submissionId;
     private Integer userId;
     private Integer contestId;
     private Integer problemId;

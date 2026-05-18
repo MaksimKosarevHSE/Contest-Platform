@@ -22,5 +22,8 @@ CREATE TABLE IF NOT EXISTS outbox_event (
     id UUID PRIMARY KEY,
     event_id UUID,
     event_type TEXT,
-    payload TEXT
-)
+    payload TEXT,
+    created_at TIMESTAMP NOT NULL
+);
+
+CREATE INDEX idx_outbox_event_created_at_id ON outbox_event(created_at, id);

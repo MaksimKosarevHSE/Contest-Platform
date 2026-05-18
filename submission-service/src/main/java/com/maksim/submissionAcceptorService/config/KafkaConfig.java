@@ -56,6 +56,7 @@ public class KafkaConfig {
     public ConcurrentKafkaListenerContainerFactory<String, SolutionJudgedEvent> solutionJudgedKafkaListenerContainerFactory() {
         var factory = new ConcurrentKafkaListenerContainerFactory<String, SolutionJudgedEvent>();
         factory.setConsumerFactory(consumerFactory());
+        factory.setConcurrency(1);
         return factory;
     }
 

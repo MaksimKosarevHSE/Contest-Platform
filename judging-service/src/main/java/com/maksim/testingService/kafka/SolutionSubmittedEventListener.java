@@ -7,12 +7,8 @@ import com.maksim.testingService.respository.ProcessedEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
-
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 
 @Slf4j
 @Component
@@ -23,14 +19,22 @@ public class SolutionSubmittedEventListener {
 
     private final ProcessedEventRepository processedEventRepository;
 
-    @KafkaListener(topics = "solution-submitted-event-topic", containerFactory = "factory1", concurrency = "2")
-    public void handle(@Payload SolutionSubmittedEvent solutionEvent,
-                       @Header("event-id") String eventId) {
-        if (processedEventRepository.existsByMessageId(eventId)) {
+    @KafkaListener(
+            topics = "${solution.submitted.event.topic}",
+            containerFactory = "solutionSubmittedKafkaListenerContainerFactory",
+            concurrency = "2"
+    )
+    public void handle(@Payload SolutionSubmittedEvent solutionEvent) {
+        Long submissionId = solutionEvent.getSubmissionId();
+        if (submissionId == null) {
+            throw new IllegalArgumentException("Solution submitted event must contain submissionId");
+        }
+        if (processedEventRepository.existsById(submissionId)) {
+            log.info("Duplicate solution submitted event for submission {}", submissionId);
             return;
         }
         judgingManager.judge(solutionEvent);
-        processedEventRepository.save(new ProcessedEvent(eventId));
+        processedEventRepository.save(new ProcessedEvent(submissionId));
     }
 
 }

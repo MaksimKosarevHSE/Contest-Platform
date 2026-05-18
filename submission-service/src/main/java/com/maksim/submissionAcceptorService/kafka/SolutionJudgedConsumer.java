@@ -26,7 +26,7 @@ public class SolutionJudgedConsumer {
     )
     public void handle(@Payload SolutionJudgedEvent event) {
         if (event.getStatus() == Status.TESTING) {
-            judgingProgressCacheService.cacheTestNumAsync(event.getSubmissionId(), event.getTestNum());
+            judgingProgressCacheService.cacheTestNum(event.getSubmissionId(), event.getTestNum());
         } else {
             submissionService.processJudgedSolution(event);
         }

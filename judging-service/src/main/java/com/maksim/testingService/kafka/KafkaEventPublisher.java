@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -31,13 +31,17 @@ public class KafkaEventPublisher {
 
     private final Integer KAFKA_TIMEOUT_SEC = 5;
 
-    public void send(String topic, Object payload) {
+    private void sendJudgedEvent(SolutionJudgedEvent event, String eventId) {
         try {
-            ProducerRecord<String, Object> record = new ProducerRecord<>(topic, payload);
-            record.headers().add("event-id", UUID.randomUUID().toString().getBytes());
+            String key = String.valueOf(event.getSubmissionId());
+            ProducerRecord<String, Object> record = new ProducerRecord<>(testCaseJudgedEventTopic, key, event);
+            record.headers().add("event-id", eventId.getBytes(StandardCharsets.UTF_8));
             kafkaTemplate.send(record).get(KAFKA_TIMEOUT_SEC, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.error("Failed to send event to Kafka topic {}: {}", topic, e.getMessage());
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            log.error("Failed to send event to Kafka topic {}: {}", testCaseJudgedEventTopic, e.getMessage());
             throw new RuntimeException("Kafka send failed", e);
         }
     }
@@ -47,12 +51,16 @@ public class KafkaEventPublisher {
                 .submissionId(submissionId)
                 .testNum(testNum)
                 .status(Status.TESTING).build();
-        kafkaTemplate.send(testCaseJudgedEventTopic, event);
+        String key = String.valueOf(submissionId);
+        String eventId = submissionId + ":test:" + testNum;
+        ProducerRecord<String, Object> record = new ProducerRecord<>(testCaseJudgedEventTopic, key, event);
+        record.headers().add("event-id", eventId.getBytes(StandardCharsets.UTF_8));
+        kafkaTemplate.send(record);
     }
 
     public void sendVerdict(Long submissionId, VerdictInfo verdictInfo) {
         SolutionJudgedEvent event = verdictMapper.toEvent(verdictInfo);
         event.setSubmissionId(submissionId);
-        send(testCaseJudgedEventTopic, event);
+        sendJudgedEvent(event, submissionId + ":final");
     }
 }

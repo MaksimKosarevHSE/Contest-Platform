@@ -2,14 +2,10 @@ package com.maksim.problemService.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.UUID;
 
 @Data
 @Entity
@@ -17,11 +13,11 @@ import java.util.UUID;
 @Table(name = "processed_events")
 public class ProcessedEvent {
     @Id
-    @Column(name = "event_id")
-    private UUID eventId;
+    @Column(name = "submission_id")
+    private Long submissionId;
 
-    public ProcessedEvent(UUID eventId) {
-        this.eventId = eventId;
+    public ProcessedEvent(Long submissionId) {
+        this.submissionId = submissionId;
     }
 
 }

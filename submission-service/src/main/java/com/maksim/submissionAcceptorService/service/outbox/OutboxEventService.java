@@ -5,10 +5,12 @@ import com.maksim.submissionAcceptorService.kafka.KafkaEventPublisher;
 import com.maksim.submissionAcceptorService.repository.OutboxEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Slf4j
@@ -20,9 +22,12 @@ public class OutboxEventService {
     private final KafkaEventPublisher kafkaEventPublisher;
     private final ObjectMapper objectMapper;
 
+    @Value("${outbox.batch-size:100}")
+    private int outboxBatchSize;
+
     @Transactional
     public void publishEvents() {
-        outboxEventRepository.findAll()
+        outboxEventRepository.findBatchForUpdate(outboxBatchSize)
                 .forEach(this::process);
     }
 
@@ -41,10 +46,11 @@ public class OutboxEventService {
                     .eventId(UUID.randomUUID())
                     .eventType(topic)
                     .payload(objectMapper.writeValueAsString(payload))
+                    .createdAt(Instant.now())
                     .build();
             outboxEventRepository.save(event);
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to serialize outbox payload", e);
+            throw new IllegalStateException("Failed to serialize payload", e);
         }
     }
 }

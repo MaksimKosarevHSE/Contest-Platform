@@ -1,10 +1,11 @@
 package com.maksim.testingService.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Data;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Data
 @Entity
@@ -12,14 +13,11 @@ import lombok.Setter;
 @Table(name = "processed_events")
 public class ProcessedEvent {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "submission_id")
+    private Long submissionId;
 
-    @Column(name = "message_id")
-    private String messageId;
-
-    public ProcessedEvent(String messageId) {
-        this.messageId = messageId;
+    public ProcessedEvent(Long submissionId) {
+        this.submissionId = submissionId;
     }
 
 }

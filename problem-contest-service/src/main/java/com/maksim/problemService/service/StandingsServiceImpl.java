@@ -27,6 +27,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -44,7 +45,7 @@ public class StandingsServiceImpl implements StandingsService {
 
     private final StandingsCacheService cacheService;
 
-    private final Object standingsCacheMonitor = new Object();
+    private final Map<Integer, Object> standingsCacheLocks = new ConcurrentHashMap<>();
 
     @Transactional
     public void handleUpdateEvent(StandingsUpdateEvent event) {
@@ -97,7 +98,7 @@ public class StandingsServiceImpl implements StandingsService {
     }
 
     private void updateCache(int contestId, int userId, int taskId, int totalScore, TaskProgressResponseDto taskDto) {
-        synchronized (standingsCacheMonitor) {
+        synchronized (lockForContest(contestId)) {
             try {
                 if (!cacheService.existsLeaderboard(contestId)) {
                     return;
@@ -128,7 +129,7 @@ public class StandingsServiceImpl implements StandingsService {
         if (contest.getStartTime().isAfter(Instant.now())) {
             throw new ConflictException("The contest has not started");
         }
-        synchronized (standingsCacheMonitor) {
+        synchronized (lockForContest(contestId)) {
             ensureCacheBuilt(contestId);
 
             page--;
@@ -168,7 +169,7 @@ public class StandingsServiceImpl implements StandingsService {
         if (contestUser.getContest().getStartTime().isAfter(Instant.now())) {
             throw new ConflictException("The contest has not started");
         }
-        synchronized (standingsCacheMonitor) {
+        synchronized (lockForContest(contestId)) {
             ensureCacheBuilt(contestId);
             Map<Integer, TaskProgressResponseDto> tasks = cacheService.getUserTasksDetails(contestId, userId);
             Integer rank = cacheService.getUserRank(contestId, userId);
@@ -182,6 +183,10 @@ public class StandingsServiceImpl implements StandingsService {
             return;
         }
         rebuildCache(contestId);
+    }
+
+    private Object lockForContest(int contestId) {
+        return standingsCacheLocks.computeIfAbsent(contestId, id -> new Object());
     }
 
     private void rebuildCache(int contestId) {

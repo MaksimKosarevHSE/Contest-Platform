@@ -49,7 +49,6 @@ CREATE TABLE IF NOT EXISTS contest_user (
     CONSTRAINT pk_contest_user PRIMARY KEY (contest_id, user_id)
     );
 
-CREATE UNIQUE INDEX idx_contest_user_unique_pair ON contest_problem(contest_id, problem_id);
 CREATE INDEX idx_contest_user_user_id ON contest_user(user_id);
 
 
@@ -68,7 +67,7 @@ CREATE INDEX idx_contest_user_task_task_id ON contest_user_task(task_id);
 CREATE INDEX idx_contest_user_task_user_id ON contest_user_task(user_id);
 
 CREATE TABLE IF NOT EXISTS processed_events (
-    event_id UUID PRIMARY KEY
+    submission_id BIGINT PRIMARY KEY
 );
 
 

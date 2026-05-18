@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -70,9 +71,9 @@ public class ContestServiceImpl implements ContestService {
         if (dto.problemsId() != null) {
             assignProblems(contest, dto.problemsId(), userId);
         }
+        contestRepository.save(contest);
         ContestResponseDto response = contestMapper.toResponseDto(contest);
         response.setProblems(getProblemSignatures(contest));
-        contestRepository.save(contest);
         return response;
     }
 
@@ -81,7 +82,7 @@ public class ContestServiceImpl implements ContestService {
         contestRepository.delete(contest);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public ContestResponseDto getContestById(Integer contestId) {
         Contest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Contest not found"));
@@ -94,13 +95,13 @@ public class ContestServiceImpl implements ContestService {
         return dto;
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public PageResponseDto<ContestResponseDto> getPublicContests(Integer page, Integer pageSize) {
         Page<Contest> contests = contestRepository.findAllByOrderByStartTimeDesc(PageRequest.of(page - 1, pageSize));
         return buildResponsePage(contests);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public PageResponseDto<ContestResponseDto> getUsersContests(Integer userId, Integer page, Integer pageSize) {
         Page<Contest> contests = contestUserRepository.findContestsByUserId(userId, PageRequest.of(page - 1, pageSize));
         return buildResponsePage(contests);
@@ -153,7 +154,7 @@ public class ContestServiceImpl implements ContestService {
     private Contest getOwnedContest(Integer contestId, Integer userId) {
         Contest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Contest not found"));
-        if (contest.getAuthorId() != userId) {
+        if (!Objects.equals(contest.getAuthorId(), userId)) {
             throw new ForbiddenException("Only author can manage contest");
         }
         return contest;

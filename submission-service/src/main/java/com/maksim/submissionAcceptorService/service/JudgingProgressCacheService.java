@@ -4,9 +4,7 @@ package com.maksim.submissionAcceptorService.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -22,10 +20,13 @@ public class JudgingProgressCacheService {
 
     private static final Duration STATUS_TTL = Duration.ofMinutes(30);
 
-    @Async
-    public void cacheTestNumAsync(Long submissionId, Integer testNum) {
+    public void cacheTestNum(Long submissionId, Integer testNum) {
         try {
             String key = STATUS_KEY_PREFIX + submissionId;
+            String current = redisTemplate.opsForValue().get(key);
+            if (current != null && Integer.parseInt(current) >= testNum) {
+                return;
+            }
             redisTemplate.opsForValue().set(key, String.valueOf(testNum), STATUS_TTL);
         } catch (Exception e) {
             log.error(e.getMessage());
@@ -42,5 +43,13 @@ public class JudgingProgressCacheService {
            log.error(ex.getMessage());
         }
         return Optional.empty();
+    }
+
+    public void clearCachedTestNum(Long submissionId) {
+        try {
+            redisTemplate.delete(STATUS_KEY_PREFIX + submissionId);
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+        }
     }
 }

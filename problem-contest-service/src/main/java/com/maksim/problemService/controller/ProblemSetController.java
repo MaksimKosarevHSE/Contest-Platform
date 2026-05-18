@@ -56,8 +56,7 @@ public class ProblemSetController {
             @ApiResponse(responseCode = "500",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public ResponseEntity<ProblemResponseDto> getProblemById(@PathVariable Integer id) throws InterruptedException {
-        Thread.sleep(10000);
+    public ResponseEntity<ProblemResponseDto> getProblemById(@PathVariable Integer id) {
         return ResponseEntity.ok(problemService.getPublicProblemById(id));
     }
 

@@ -33,8 +33,8 @@ public class KafkaConfig {
         return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new JacksonJsonDeserializer<>(StandingsUpdateEvent.class));
     }
 
-    @Bean("factory1")
-    public ConcurrentKafkaListenerContainerFactory<String, StandingsUpdateEvent> concurrentKafkaListenerContainerFactory() {
+    @Bean("standingsUpdateKafkaListenerContainerFactory")
+    public ConcurrentKafkaListenerContainerFactory<String, StandingsUpdateEvent> standingsUpdateKafkaListenerContainerFactory() {
         var factory = new ConcurrentKafkaListenerContainerFactory<String, StandingsUpdateEvent>();
         factory.setConsumerFactory(consumerFactory());
         factory.setConcurrency(1);
